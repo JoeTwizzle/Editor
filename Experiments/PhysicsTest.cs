@@ -4,7 +4,7 @@ using System.Text;
 using BepuPhysics;
 using BepuUtilities;
 
-namespace Editor
+namespace GameEditor
 {
     class PhysicsTest
     {

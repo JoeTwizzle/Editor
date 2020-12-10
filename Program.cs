@@ -1,7 +1,7 @@
 ﻿using OpenTK.Windowing.Desktop;
 using System;
 
-namespace Editor
+namespace GameEditor
 {
     class Program
     {
@@ -9,9 +9,10 @@ namespace Editor
         {
             var a = NativeWindowSettings.Default;
             a.APIVersion = new Version(4, 6);
+            a.Flags |= OpenTK.Windowing.Common.ContextFlags.Debug;
             var ga = GameWindowSettings.Default;
-            ga.IsMultiThreaded = false;
-            TestGame g = new TestGame(ga, a);
+
+            EditorGame g = new EditorGame(ga, a);
             g.Run();
         }
     }

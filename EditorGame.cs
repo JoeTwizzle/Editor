@@ -1,4 +1,5 @@
-﻿using OpenTK.Graphics.OpenGL4;
+﻿using ImGuiNET;
+using OpenTK.Graphics.OpenGL4;
 using OpenTK.Mathematics;
 using OpenTK.Windowing.Common;
 using OpenTK.Windowing.Common.Input;
@@ -6,95 +7,108 @@ using OpenTK.Windowing.Desktop;
 using OpenTK.Windowing.GraphicsLibraryFramework;
 using RasterDraw.Assets;
 using RasterDraw.Core;
+using RasterDraw.Core.GUI;
 using RasterDraw.Core.Helpers;
 using RasterDraw.Core.NativeScripts;
 using RasterDraw.Core.Rendering;
 using RasterDraw.Core.Scripting;
-using RasterDraw.GLGraphics;
-using RasterDraw.GLGraphics.Helpers;
+using GLGraphics;
+using GLGraphics.Helpers;
 using System;
 using System.Linq;
+using System.Runtime.InteropServices;
+using System.Diagnostics;
 
-namespace Editor
+namespace GameEditor
 {
-    public class TestGame : GameWindow
+    public class EditorGame : GameWindow
     {
-
-        public TestGame() : base(GameWindowSettings.Default, NativeWindowSettings.Default)
+        public static GameWindow ActiveWindow;
+        public EditorGame() : base(GameWindowSettings.Default, NativeWindowSettings.Default)
         {
 
         }
-        public TestGame(GameWindowSettings gameWindowSettings, NativeWindowSettings nativeWindowSettings) : base(gameWindowSettings, nativeWindowSettings)
+        public EditorGame(GameWindowSettings gameWindowSettings, NativeWindowSettings nativeWindowSettings) : base(gameWindowSettings, nativeWindowSettings)
         {
 
         }
         DateTime p1;
         DateTime p2;
-
+        EditorManager EditorManager;
         protected override void OnResize(ResizeEventArgs e)
         {
-            RenderTexture.DefaultWidth = e.Width;
-            RenderTexture.DefaultHeight = e.Height;
-            MainViewport = new Viewport(new Box2i(Vector2i.Zero, e.Size));
-            cam.Viewport = new Viewport(new Box2i(Vector2i.Zero, e.Size));
             p2 = p1;
             p1 = DateTime.UtcNow;
-            OnUpdateFrame(new FrameEventArgs(p1.TimeOfDay.TotalSeconds - p2.TimeOfDay.TotalSeconds));
-            OnRenderFrame(new FrameEventArgs(p1.TimeOfDay.TotalSeconds - p2.TimeOfDay.TotalSeconds));
+            
+            if (!IsMultiThreaded)
+            {
+                OnUpdateFrame(new FrameEventArgs(p1.TimeOfDay.TotalSeconds - p2.TimeOfDay.TotalSeconds));
+                OnRenderFrame(new FrameEventArgs(p1.TimeOfDay.TotalSeconds - p2.TimeOfDay.TotalSeconds));
+            }
+           
+            base.OnResize(e);
+            EditorManager.Resize(e.Size);
         }
-        public Viewport MainViewport;
         public Camera cam { get; private set; }
         Transform carTransform;
-        GameContext GameContext = new GameContext();
+        Scene GameContext = new Scene();
         GameLoop GameLoop;
         GameObject CameraObj;
 
         void Init()
         {
+            ActiveWindow = this;
             Console.WriteLine(GL.GetString(StringName.Renderer));
             Console.WriteLine(GL.GetString(StringName.Version));
-            GL.ClearColor(Color4.Black);
-            Debug.Init();
+
             AssetLoader.Init();
             IRenderer.ActiveRenderer = new BetterRenderer();
+            IRenderer.ActiveRenderer.Init();
             GameLoop = new GameLoop(GameContext);
+
+            EditorManager = new EditorManager(ClientSize);
+            EditorManager.LÖÖPS = GameLoop;
         }
 
         protected override void OnLoad()
         {
             Init();
+            _debugProcCallbackHandle = GCHandle.Alloc(_debugProcCallback);
+            GL.Enable(EnableCap.DebugOutput);
+            GL.Enable(EnableCap.DebugOutputSynchronous);
+            GL.DebugMessageCallback(_debugProcCallback, IntPtr.Zero);
             var sponza = AssetLoader.LoadAssets(@"D:\Blender\Models\SponzaFixed.fbx", 1f);
             var zelda = AssetLoader.LoadAssets(@"D:\Blender\Models\Zelda\scene.gltf", 0.01f);
             var car = AssetLoader.LoadAssets(@"D:\Blender\Models\Audi R8\Models\Audi R8.fbx", 0.1f);
             var Sphere = AssetLoader.LoadAssets(@"D:\Blender\Models\Sphere.fbx", 1f);
-            //var mc = AssetLoader.LoadModel(@"D:\Blender\Models\beta map split.obj", 1f);
-         
-            
+            //var mc = AssetLoader.LoadAssets(@"D:\Blender\Models\beta map split.obj", 1f);
+
+            //mc.Root.Transform.Position -= Vector3.UnitY * 128;
             //GameLoop.Instantiate(mc, null);
             GameLoop.Instantiate(Sphere, null);
             GameLoop.Instantiate(car, null);
             GameLoop.Instantiate(zelda, null);
             GameLoop.Instantiate(sponza, null);
             CompTest compTest = new CompTest();
-            MainViewport = new Viewport(ClientRectangle);
-            cam = new Camera(MainViewport);
+            cam = new Camera(new Viewport(ClientRectangle));
             CameraObj = new GameObject();
-            Transform transform = new Transform();
-            GameLoop.Add(transform, CameraObj);
-            cam.Transform = transform;
-            GameLoop.Add(cam, CameraObj);
+            CameraObj.AddComponent(cam);
+            GameLoop.Add(CameraObj);
             IRenderer.ActiveRenderer.AddCamera(cam);
             GameLoop.Update();
             //------------
-            GameLoop.Add(compTest, CameraObj);
-            compTest.Material = zelda.Root.Children[0].Children[0].Children[0].Children[0].Children[6].Children[0].GameObject?.GetComponent<MeshRenderer>()!.Material;
-            GameLoop.Add(new TurnTable(), zelda.Root.GameObject!);
-            var t = Sphere.Root.GameObject?.GetComponent<Transform>()!;
+            //var skybox = new SkyboxFX();
+            //GameLoop.Add(skybox, CameraObj);
+            CameraObj.AddComponent(compTest);
+            //compTest.Material = zelda.Root.Transform.Children[0].Children[0].Children[0].Children[0].Children[6].Children[0].GameObject?.GetComponent<MeshRenderer>()!.Material;
+            zelda.Root.AddComponent(new TurnTable());
+            var t = Sphere.Root.GetComponent<Transform>()!;
             t.Position = new Vector3(0, 4, 0);
             t.Scale = new Vector3(0.1f);
-            carTransform = car.Root.GameObject?.GetComponent<Transform>()!;
+            carTransform = car.Root.GetComponent<Transform>()!;
+            //EditorManager.SelectedObj = GameLoop.
         }
-        
+
 
         float angleY = 0;
         float angleX = 0;
@@ -110,11 +124,15 @@ namespace Editor
                 else
                 {
                     WindowState = WindowState.Fullscreen;
-                }              
+                }
             }
             if (KeyboardState.IsKeyDown(Keys.Escape) && !KeyboardState.WasKeyDown(Keys.Escape))
             {
                 CursorGrabbed = !CursorGrabbed;
+                if (!CursorGrabbed)
+                {
+                    CursorVisible = true;
+                }
             }
             if (CursorGrabbed)
             {
@@ -142,111 +160,116 @@ namespace Editor
                 carAngleX -= (float)args.Time * speedRot;
             }
             carTransform.LocalRotation = Quaternion.FromAxisAngle(Vector3.UnitY, carAngleX);
-            var fwd = cam.Transform.LocalForward;
-            fwd = new Vector3(fwd.X, 0, fwd.Z).Normalized();
-            if (KeyboardState.IsKeyDown(Keys.W))
+            if (cam.Transform != null)
             {
-                cam.Transform.LocalPosition += fwd * speed * (float)args.Time;
-            }
-            if (KeyboardState.IsKeyDown(Keys.S))
-            {
-                cam.Transform.LocalPosition -= fwd * speed * (float)args.Time;
-            }
-            if (KeyboardState.IsKeyDown(Keys.A))
-            {
-                cam.Transform.LocalPosition += cam.Transform.LocalRight * speed * (float)args.Time;
-            }
-            if (KeyboardState.IsKeyDown(Keys.D))
-            {
-                cam.Transform.LocalPosition -= cam.Transform.LocalRight * speed * (float)args.Time;
-            }
-            if (KeyboardState.IsKeyDown(Keys.Space))
-            {
-                cam.Transform.LocalPosition += new Vector3(0, (float)args.Time, 0) * speed;
-            }
-            if (KeyboardState.IsKeyDown(Keys.LeftShift))
-            {
-                cam.Transform.LocalPosition -= new Vector3(0, (float)args.Time, 0) * speed;
-            }
+                var fwd = cam.Transform.LocalForward;
+                fwd = new Vector3(fwd.X, 0, fwd.Z).Normalized();
+                if (KeyboardState.IsKeyDown(Keys.W))
+                {
+                    cam.Transform.LocalPosition += fwd * speed * (float)args.Time;
+                }
+                if (KeyboardState.IsKeyDown(Keys.S))
+                {
+                    cam.Transform.LocalPosition -= fwd * speed * (float)args.Time;
+                }
+                if (KeyboardState.IsKeyDown(Keys.A))
+                {
+                    cam.Transform.LocalPosition += cam.Transform.LocalRight * speed * (float)args.Time;
+                }
+                if (KeyboardState.IsKeyDown(Keys.D))
+                {
+                    cam.Transform.LocalPosition -= cam.Transform.LocalRight * speed * (float)args.Time;
+                }
+                if (KeyboardState.IsKeyDown(Keys.Space))
+                {
+                    cam.Transform.LocalPosition += new Vector3(0, (float)args.Time, 0) * speed;
+                }
+                if (KeyboardState.IsKeyDown(Keys.LeftShift))
+                {
+                    cam.Transform.LocalPosition -= new Vector3(0, (float)args.Time, 0) * speed;
+                }
 
-            if (KeyboardState.IsKeyDown(Keys.Left))
-            {
-                angleX += (float)args.Time * speedRot;
+
+
+                if (KeyboardState.IsKeyDown(Keys.Left))
+                {
+                    angleX += (float)args.Time * speedRot;
+                }
+                if (KeyboardState.IsKeyDown(Keys.Right))
+                {
+                    angleX -= (float)args.Time * speedRot;
+                }
+                if (KeyboardState.IsKeyDown(Keys.Down))
+                {
+                    angleY += (float)args.Time * speedRot;
+                }
+                if (KeyboardState.IsKeyDown(Keys.Up))
+                {
+                    angleY -= (float)args.Time * speedRot;
+                }
+                if (KeyboardState.IsKeyDown(Keys.Enter))
+                {
+                    GC.Collect();
+                }
+                cam.Transform.LocalRotation = Quaternion.FromAxisAngle(Vector3.UnitY, angleX) * Quaternion.FromAxisAngle(Vector3.UnitX, angleY);
             }
-            if (KeyboardState.IsKeyDown(Keys.Right))
-            {
-                angleX -= (float)args.Time * speedRot;
-            }
-            if (KeyboardState.IsKeyDown(Keys.Down))
-            {
-                angleY += (float)args.Time * speedRot;
-            }
-            if (KeyboardState.IsKeyDown(Keys.Up))
-            {
-                angleY -= (float)args.Time * speedRot;
-            }
-            if (KeyboardState.IsKeyDown(Keys.Enter))
-            {
-                GC.Collect();
-            }
-            cam.Transform.LocalRotation = Quaternion.FromAxisAngle(Vector3.UnitY, angleX) * Quaternion.FromAxisAngle(Vector3.UnitX, angleY);
             GameLoop.Update();
-            GLObjectCleaner.Update((float)args.Time);
-            var e = GL.GetError();
-            if (e != OpenTK.Graphics.OpenGL4.ErrorCode.NoError)
-            {
-                Console.WriteLine(e);
-            }
         }
 
         protected override void OnRenderFrame(FrameEventArgs args)
         {
-            GL.Clear(ClearBufferMask.ColorBufferBit | ClearBufferMask.DepthBufferBit);
+            GLObjectCleaner.Update((float)args.Time);
+            GL.Clear(ClearBufferMask.ColorBufferBit | ClearBufferMask.DepthBufferBit | ClearBufferMask.StencilBufferBit);
             GameLoop.Draw();
             IRenderer.ActiveRenderer.Render();
+            EditorManager.Render(this, (float)args.Time);
+            //IRenderer.ActiveRenderer.PresentToScreen();
             SwapBuffers();
         }
 
+        protected override void OnTextInput(TextInputEventArgs e)
+        {
+            base.OnTextInput(e);
 
-        //    ShaderProgram program;
-        //    VertexArray VAO;
-        //    Vertex[] v;
-        //    GLBuffer buffer;
-        //    int c;
-        //    void checkError()
-        //    {
-        //        var e = GL.GetError();
-        //        if (e != OpenToolkit.Graphics.OpenGL4.ErrorCode.NoError)
-        //        {
-        //            Console.WriteLine("Frame " + c + " " + e);
-        //        }
-        //        c++;
-        //    }
-        //    static void LogDebug(DebugSource debugSource, DebugType debugType, int Id, DebugSeverity debugSeverity, int length, IntPtr message, IntPtr userParams)
-        //    {
-        //        switch (debugSeverity)
-        //        {
-        //            case DebugSeverity.DontCare:
-        //                Console.ForegroundColor = ConsoleColor.Gray;
-        //                break;
-        //            case DebugSeverity.DebugSeverityNotification:
-        //                Console.ForegroundColor = ConsoleColor.White;
-        //                break;
-        //            case DebugSeverity.DebugSeverityHigh:
-        //                Console.ForegroundColor = ConsoleColor.Red;
-        //                break;
-        //            case DebugSeverity.DebugSeverityMedium:
-        //                Console.ForegroundColor = ConsoleColor.Yellow;
-        //                break;
-        //            case DebugSeverity.DebugSeverityLow:
-        //                Console.ForegroundColor = ConsoleColor.Green;
-        //                break;
-        //            default:
-        //                break;
-        //        }
-        //        Console.WriteLine("DebugSource: " + debugSource + " DebugType: " + debugType + " Id: " + Id + " DebugSeverity: " + debugSeverity);
-        //        Console.WriteLine("Message: " + Marshal.PtrToStringAuto(message, length));
-        //    }
+
+            EditorManager.CharPressed((char)e.Unicode);
+        }
+
+        protected override void OnMouseWheel(MouseWheelEventArgs e)
+        {
+            base.OnMouseWheel(e);
+
+            EditorManager.MouseScroll(e.Offset);
+        }
+
+        static DebugProc _debugProcCallback = LogDebug;
+        static GCHandle _debugProcCallbackHandle;
+
+        static void LogDebug(DebugSource debugSource, DebugType debugType, int Id, DebugSeverity debugSeverity, int length, IntPtr message, IntPtr userParams)
+        {
+            switch (debugSeverity)
+            {
+                case DebugSeverity.DontCare:
+                    Console.ForegroundColor = ConsoleColor.Gray;
+                    break;
+                case DebugSeverity.DebugSeverityNotification:
+                    Console.ForegroundColor = ConsoleColor.White;
+                    break;
+                case DebugSeverity.DebugSeverityHigh:
+                    Console.ForegroundColor = ConsoleColor.Red;
+                    break;
+                case DebugSeverity.DebugSeverityMedium:
+                    Console.ForegroundColor = ConsoleColor.Yellow;
+                    break;
+                case DebugSeverity.DebugSeverityLow:
+                    Console.ForegroundColor = ConsoleColor.Green;
+                    break;
+                default:
+                    break;
+            }
+            Console.WriteLine($"{debugSeverity} {debugType} | {Marshal.PtrToStringAnsi(message, length)} ID:{Id}");
+            Console.ForegroundColor = ConsoleColor.Gray;
+        }
 
         //    protected override void OnLoad()
         //    {
