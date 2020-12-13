@@ -1,15 +1,18 @@
-﻿using ImGuiNET;
+﻿using GameEditor.Editors;
+using ImGuiNET;
 using OpenTK.Graphics.OpenGL4;
 using OpenTK.Mathematics;
 using OpenTK.Windowing.Desktop;
 using RasterDraw.Core;
 using RasterDraw.Core.GUI;
+using RasterDraw.Core.Helpers;
 using RasterDraw.Core.NativeScripts;
 using RasterDraw.Core.Rendering;
 using RasterDraw.Core.Scripting;
 using RasterDraw.Serialization;
 using System;
 using System.Collections.Generic;
+using System.Reflection;
 using System.Text;
 
 namespace GameEditor
@@ -31,10 +34,14 @@ namespace GameEditor
             OnResizeGame();
         }
 
-        public void Render(GameWindow gw, float dt)
+        public void Update(GameWindow gw, float dt)
         {
             GuiController.Update(gw, dt);
             DrawUI(LÖÖPS.masterScene);
+        }
+
+        public void Render()
+        {
             GL.Viewport(0, 0, Size.X, Size.Y);
             GuiController.Render();
         }
@@ -61,7 +68,8 @@ namespace GameEditor
         GameObject? prevSelectedObj;
         public GameObject? SelectedObj
         {
-            get => selectedObj; set
+            get => selectedObj;
+            set
             {
                 prevSelectedObj = selectedObj;
                 selectedObj = value;
@@ -143,7 +151,7 @@ namespace GameEditor
 
             if (ImGui.Begin("Hierarchy", ImGuiWindowFlags.NoCollapse))
             {
-                if (ImGui.TreeNodeEx(scene.UIDText, ImGuiTreeNodeFlags.Framed | ImGuiTreeNodeFlags.FramePadding, "Root Scene"))
+                if (ImGui.TreeNodeEx(scene.UIDText, ImGuiTreeNodeFlags.Framed | ImGuiTreeNodeFlags.DefaultOpen | ImGuiTreeNodeFlags.FramePadding, "Root Scene"))
                 {
                     var gos = scene.ReadOnlyGameObjects;
                     for (int i = 0; i < gos.Count; i++)
@@ -176,7 +184,8 @@ namespace GameEditor
                 {
                     if (SelectedObj != prevSelectedObj)
                     {
-                        Inspectors.Clear();
+                        prevSelectedObj = selectedObj;
+                        ActiveEditors.Clear();
                         for (int i = 0; i < SelectedObj.Scripts.Count; i++)
                         {
                             InitInspector(SelectedObj.Scripts[i]);
@@ -184,14 +193,14 @@ namespace GameEditor
                     }
                     EditorHelper.DrawMember(SelectedObj.UIDText, selectedObjInfo!.GetMemberInfoByName("Name"), SelectedObj);
                     EditorHelper.DrawMember(SelectedObj.UIDText, selectedObjInfo!.GetMemberInfoByName("IsActive"), SelectedObj);
-                    for (int i = 0; i < Inspectors.Count; i++)
+                    for (int i = 0; i < ActiveEditors.Count; i++)
                     {
                         ImGui.Spacing();
                         ImGui.Separator();
                         ImGui.Spacing();
-                        if (ImGui.CollapsingHeader(Inspectors[i].TargetObjType.Name))
+                        if (ImGui.CollapsingHeader(ActiveEditors[i].TargetObjType.Name, ImGuiTreeNodeFlags.DefaultOpen))
                         {
-                            Inspectors[i].OnDrawUI();
+                            ActiveEditors[i].OnDrawUI();
                         }
                     }
                 }
@@ -209,23 +218,37 @@ namespace GameEditor
             }
         }
 
-        List<Editor> Inspectors = new List<Editor>();
+        List<Editor> ActiveEditors = new List<Editor>();
+        IEnumerable<(Type, CustomEditorAttribute)> CustomEditors;
+
+        public void LoadEditors()
+        {
+            CustomEditors = Utilities.GetTypesWithAnAttribute<CustomEditorAttribute>(Assembly.GetExecutingAssembly());
+        }
 
         private void InitInspector(GameScript gameScript)
         {
-            Editor editor;
-            if (gameScript.GetType() == typeof(MeshRenderer))
+            Editor editor = null!;  //HAHA LMAO   
+            var type = gameScript.GetType();
+            bool hasCustomEditor = false;
+            foreach (var e in CustomEditors)
             {
-                editor = new MeshRendererEditor();
+                if (type == e.Item2.TargetType)
+                {
+                    editor = (Editor)Activator.CreateInstance(e.Item1)!;
+                    hasCustomEditor = true;
+                    break;
+                }
             }
-            else
+
+            if (!hasCustomEditor)
             {
-                editor = new DefaultScriptEditor();
+                editor = new DefaultEditor();
             }
 
             editor.SetTargetObj(gameScript);
             editor.Init();
-            Inspectors.Add(editor);
+            ActiveEditors.Add(editor);
         }
     }
 }

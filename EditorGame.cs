@@ -67,6 +67,7 @@ namespace GameEditor
             GameLoop = new GameLoop(GameContext);
 
             EditorManager = new EditorManager(ClientSize);
+            EditorManager.LoadEditors();
             EditorManager.LÖÖPS = GameLoop;
         }
 
@@ -214,6 +215,7 @@ namespace GameEditor
                 cam.Transform.LocalRotation = Quaternion.FromAxisAngle(Vector3.UnitY, angleX) * Quaternion.FromAxisAngle(Vector3.UnitX, angleY);
             }
             GameLoop.Update();
+            EditorManager.Update(this, (float)args.Time);
         }
 
         protected override void OnRenderFrame(FrameEventArgs args)
@@ -222,7 +224,7 @@ namespace GameEditor
             GL.Clear(ClearBufferMask.ColorBufferBit | ClearBufferMask.DepthBufferBit | ClearBufferMask.StencilBufferBit);
             GameLoop.Draw();
             IRenderer.ActiveRenderer.Render();
-            EditorManager.Render(this, (float)args.Time);
+            EditorManager.Render();
             //IRenderer.ActiveRenderer.PresentToScreen();
             SwapBuffers();
         }

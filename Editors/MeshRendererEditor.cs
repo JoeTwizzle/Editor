@@ -6,8 +6,9 @@ using System.Collections.Generic;
 using System.Reflection;
 using System.Text;
 
-namespace GameEditor
+namespace GameEditor.Editors
 {
+    [CustomEditor(typeof(MeshRenderer))]
     class MeshRendererEditor : Editor
     {
         MeshRenderer Target;
@@ -23,9 +24,9 @@ namespace GameEditor
         public override void OnDrawUI()
         {
             //ImGui.BeginCombo("",,ImGuiComboFlags.);
-            for (int i = 0; i < TargetInfo.members.Length; i++)
+            for (int i = 0; i < TargetInfo.variableMembers.Length; i++)
             {
-                var member = TargetInfo.members[i];
+                var member = TargetInfo.variableMembers[i];
                 if (member.MemberType == MemberTypes.Property || member.MemberType == MemberTypes.Field)
                 {
                     EditorHelper.DrawMember(Target.UIDText, member, TargetObj);

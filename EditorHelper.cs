@@ -1,5 +1,6 @@
 ﻿using ImGuiNET;
 using OpenTK.Mathematics;
+using RasterDraw.Core.Helpers;
 using RasterDraw.Serialization;
 using System;
 using System.Collections;
@@ -11,27 +12,46 @@ namespace GameEditor
 {
     public static class EditorHelper
     {
-        public static void DrawMember(string uid, MemberInfo member, object? TargetObj)
+        public static bool DrawMember(string uid, string name, ref object val, Type type)
+        {
+            if (type == null)
+            {
+                return false;
+            }
+            return DrawMemberInternal(uid, name, ref val, type);
+        }
+
+        public static void DrawMember(string uid, MemberInfo member, object TargetObj)
         {
             if (TargetObj == null || !(member.MemberType == MemberTypes.Property || member.MemberType == MemberTypes.Field))
             {
                 return;
             }
+            var val = member.GetValue(TargetObj)!;
+            var type = member.GetTypeInfo();
+            if (DrawMemberInternal(uid, member.Name, ref val, type))
+            {
+                member.SetValue(TargetObj, val);
+            }
+        }
+
+        static bool DrawMemberInternal(string uid, string name, ref object? val, Type type)
+        {
             float xSpace = ImGui.GetContentRegionAvail().X;
-            ImGui.Columns(2, member.Name, false);
+            string identifier = $"##{uid}{name}";
+            ImGui.Columns(2, identifier, false);
             ImGui.SetColumnWidth(0, xSpace * 0.4f);
-            ImGui.Text(member.Name);
+            ImGui.Text(name);
             ImGui.NextColumn();
             ImGui.SetNextItemWidth(ImGui.GetColumnWidth());
-            var val = member.GetValue(TargetObj);
-            var type = member.GetTypeInfo();
-            string identifier = $"##{uid}{member.Name}";
+            bool changed = false;
             if (type == typeof(float))
             {
                 var value = (float)val!;
                 if (ImGui.DragFloat(identifier, ref value, 0.05f))
                 {
-                    member.SetValue(TargetObj, value);
+                    val = value;
+                    changed = true;
                 }
             }
             else if (type == typeof(Vector2))
@@ -41,7 +61,8 @@ namespace GameEditor
                 if (ImGui.DragFloat2(identifier, ref vec, 0.05f))
                 {
                     value = new Vector2(vec.X, vec.Y);
-                    member.SetValue(TargetObj, value);
+                    val = value;
+                    changed = true;
                 }
             }
             else if (type == typeof(Vector3))
@@ -51,7 +72,8 @@ namespace GameEditor
                 if (ImGui.DragFloat3(identifier, ref vec, 0.05f))
                 {
                     value = new Vector3(vec.X, vec.Y, vec.Z);
-                    member.SetValue(TargetObj, value);
+                    val = value;
+                    changed = true;
                 }
             }
             else if (type == typeof(Vector4))
@@ -61,7 +83,8 @@ namespace GameEditor
                 if (ImGui.DragFloat4(identifier, ref vec, 0.05f))
                 {
                     value = new Vector4(vec.X, vec.Y, vec.Z, vec.W);
-                    member.SetValue(TargetObj, value);
+                    val = value;
+                    changed = true;
                 }
             }
             else if (type == typeof(int))
@@ -69,7 +92,8 @@ namespace GameEditor
                 var value = (int)val!;
                 if (ImGui.DragInt(identifier, ref value, 0.05f))
                 {
-                    member.SetValue(TargetObj, value);
+                    val = value;
+                    changed = true;
                 }
             }
             else if (type == typeof(Vector2i))
@@ -77,7 +101,8 @@ namespace GameEditor
                 var value = (Vector2i)val!;
                 if (ImGui.DragInt2(identifier, ref value.X, 0.05f))
                 {
-                    member.SetValue(TargetObj, value);
+                    val = value;
+                    changed = true;
                 }
             }
             else if (type == typeof(Vector3i))
@@ -85,26 +110,29 @@ namespace GameEditor
                 var value = (Vector3i)val!;
                 if (ImGui.DragInt3(identifier, ref value.X, 0.05f))
                 {
-                    member.SetValue(TargetObj, value);
+                    val = value;
+                    changed = true;
                 }
             }
+
             else if (type == typeof(Vector4i))
             {
                 var value = (Vector4i)val!;
                 if (ImGui.DragInt4(identifier, ref value.X, 0.05f))
                 {
-                    member.SetValue(TargetObj, value);
+                    val = value;
+                    changed = true;
                 }
             }
             else if (type == typeof(Quaternion))
             {
-                var value = ((Quaternion)val).ToEulerAngles() * (180f / MathF.PI)!;
-                var vec = new System.Numerics.Vector3(value.X, value.Y, value.Z);
-                if (ImGui.DragFloat3(identifier, ref vec, 0.05f))
+                var value = (Quaternion)val!;
+                var vec = new System.Numerics.Vector4(value.X, value.Y, value.Z, value.W);
+                if (ImGui.DragFloat4(identifier, ref vec, 0.05f))
                 {
-                    vec *= (MathF.PI / 180f);
-                    var rotation = Quaternion.FromEulerAngles(vec.X, vec.Y, vec.Z);
-                    member.SetValue(TargetObj, rotation);
+                    value = new Quaternion(vec.X, vec.Y, vec.Z, vec.W);
+                    val = value;
+                    changed = true;
                 }
             }
             else if (type == typeof(bool))
@@ -112,7 +140,8 @@ namespace GameEditor
                 var value = (bool)val!;
                 if (ImGui.Checkbox(identifier, ref value))
                 {
-                    member.SetValue(TargetObj, value);
+                    val = value;
+                    changed = true;
                 }
             }
             else if (type == typeof(string))
@@ -120,7 +149,8 @@ namespace GameEditor
                 var value = (string)val!;
                 if (ImGui.InputText(identifier, ref value, 255))
                 {
-                    member.SetValue(TargetObj, value);
+                    val = value;
+                    changed = true;
                 }
             }
             else if (typeof(IList).IsAssignableFrom(type) && type.IsGenericType)
@@ -142,6 +172,7 @@ namespace GameEditor
                 }
             }
             ImGui.Columns(1);
+            return changed;
         }
     }
 }

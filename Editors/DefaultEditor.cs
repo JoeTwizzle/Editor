@@ -6,9 +6,9 @@ using System;
 using System.Collections.Generic;
 using System.Reflection;
 
-namespace GameEditor
+namespace GameEditor.Editors
 {
-    public class DefaultScriptEditor : Editor
+    public class DefaultEditor : Editor
     {
         ObjectInfo objInfo;
         public override void Init()
@@ -22,9 +22,9 @@ namespace GameEditor
 
         void DrawMembers()
         {
-            for (int i = 0; i < objInfo.members.Length; i++)
+            for (int i = 0; i < objInfo.variableMembers.Length; i++)
             {
-                var member = objInfo.members[i];
+                var member = objInfo.variableMembers[i];
                 if (member.MemberType == MemberTypes.Property || member.MemberType == MemberTypes.Field)
                 {
                     EditorHelper.DrawMember(((GameScript)objInfo.Target).UIDText, member, TargetObj);
