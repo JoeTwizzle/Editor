@@ -18,14 +18,14 @@ namespace GameEditor
             {
                 return false;
             }
-            return DrawMemberInternal(uid, name, ref val, type);
+            return DrawMemberInternal(uid, name, ref val!, type);
         }
 
         public static void DrawMember(string uid, MemberInfo member, object TargetObj)
         {
-            if (TargetObj == null || !(member.MemberType == MemberTypes.Property || member.MemberType == MemberTypes.Field))
+            if (member == null || TargetObj == null || !(member.MemberType == MemberTypes.Property || member.MemberType == MemberTypes.Field))
             {
-                return;
+                throw new ArgumentNullException();
             }
             var val = member.GetValue(TargetObj)!;
             var type = member.GetTypeInfo();

@@ -39,13 +39,13 @@ namespace GameEditor
         {
             p2 = p1;
             p1 = DateTime.UtcNow;
-            
+
             if (!IsMultiThreaded)
             {
                 OnUpdateFrame(new FrameEventArgs(p1.TimeOfDay.TotalSeconds - p2.TimeOfDay.TotalSeconds));
                 OnRenderFrame(new FrameEventArgs(p1.TimeOfDay.TotalSeconds - p2.TimeOfDay.TotalSeconds));
             }
-           
+
             base.OnResize(e);
             EditorManager.Resize(e.Size);
         }
@@ -73,12 +73,12 @@ namespace GameEditor
 
         protected override void OnLoad()
         {
-            Init();
             _debugProcCallbackHandle = GCHandle.Alloc(_debugProcCallback);
             GL.Enable(EnableCap.DebugOutput);
             GL.Enable(EnableCap.DebugOutputSynchronous);
             GL.DebugMessageCallback(_debugProcCallback, IntPtr.Zero);
-            var sponza = AssetLoader.LoadAssets(@"D:\Blender\Models\SponzaFixed.fbx", 1f);
+            Init();
+            //var sponza = AssetLoader.LoadAssets(@"D:\Blender\Models\SunTemple\SunTemple.glb", 1f);
             var zelda = AssetLoader.LoadAssets(@"D:\Blender\Models\Zelda\scene.gltf", 0.01f);
             var car = AssetLoader.LoadAssets(@"D:\Blender\Models\Audi R8\Models\Audi R8.fbx", 0.1f);
             var Sphere = AssetLoader.LoadAssets(@"D:\Blender\Models\Sphere.fbx", 1f);
@@ -89,10 +89,10 @@ namespace GameEditor
             GameLoop.Instantiate(Sphere, null);
             GameLoop.Instantiate(car, null);
             GameLoop.Instantiate(zelda, null);
-            GameLoop.Instantiate(sponza, null);
+            //GameLoop.Instantiate(sponza, null);
             CompTest compTest = new CompTest();
             cam = new Camera(new Viewport(ClientRectangle));
-            CameraObj = new GameObject();
+            CameraObj = new GameObject("Main Camera");
             CameraObj.AddComponent(cam);
             GameLoop.Add(CameraObj);
             IRenderer.ActiveRenderer.AddCamera(cam);
@@ -133,6 +133,18 @@ namespace GameEditor
                 if (!CursorGrabbed)
                 {
                     CursorVisible = true;
+                }
+            }
+            if (KeyboardState.IsKeyDown(Keys.V) && !KeyboardState.WasKeyDown(Keys.V))
+            {
+
+                if (VSync == VSyncMode.Adaptive)
+                {
+                    VSync = VSyncMode.Off;
+                }
+                else
+                {
+                    VSync = VSyncMode.Adaptive;
                 }
             }
             if (CursorGrabbed)

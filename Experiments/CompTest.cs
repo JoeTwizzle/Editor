@@ -73,8 +73,6 @@ namespace GameEditor
             rtQuad.Material = new Material(FSQuadProgram, RasterizerState.Fullscreen);
         }
 
-        float i = 0;
-        ShaderData data;
         private void ActiveRenderer_OnPostRender(ICamera cam)
         {
 
