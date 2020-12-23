@@ -30,7 +30,7 @@ namespace GameEditor
         MeshFilter rtMF = new MeshFilter();
 
         Texture2D skybox = new Texture2D();
-        public override void Init()
+        public override void DrawInit()
         {
             new TextureData(@"D:\Blender\HDRI\kloppenheim_02.jpg").InitializeTexture(skybox);
             //targetTex.Init(1920, 1080);
@@ -92,7 +92,7 @@ namespace GameEditor
             //compBuffer.UpdateData(data);
             //
             var targetTex = cam.RenderTexture.ColorTexture;
-            if (Enabled)
+            if (IsActiveAndEnabled)
             {
                 skybox.Bind(0);
                 cam.RenderTexture.DepthTexture.Bind(1);
@@ -108,11 +108,6 @@ namespace GameEditor
 
             rtQuad.Material.SetTexture(targetTex, 0);
             IRenderer.ActiveRenderer.RenderDrawCall(IRenderer.ActiveRenderer.VAOs[typeof(QuadVertex)], cam, rtQuad);
-        }
-
-        public override void Update()
-        {
-
         }
     }
 }

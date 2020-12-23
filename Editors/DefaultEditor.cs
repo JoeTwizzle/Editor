@@ -15,6 +15,7 @@ namespace GameEditor.Editors
         {
             objInfo = new ObjectInfo(TargetObj);
         }
+
         public override void OnDrawUI()
         {
             DrawMembers();

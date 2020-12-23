@@ -7,8 +7,8 @@ namespace GameEditor.Editors
 {
     public abstract class Editor
     {
-        public void SetTargetObj(GameScript target) { TargetObj = target; TargetObjType = target.GetType(); }
-        public GameScript TargetObj { get; private set; }
+        public void SetTargetObj(GameObjectAttachment target) { TargetObj = target; TargetObjType = target.GetType(); }
+        public GameObjectAttachment TargetObj { get; private set; }
         public Type TargetObjType { get; private set; }
         public abstract void OnDrawUI();
         public abstract void Init();

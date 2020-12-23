@@ -18,6 +18,7 @@ using System;
 using System.Linq;
 using System.Runtime.InteropServices;
 using System.Diagnostics;
+using RasterDraw.Core.Physics;
 
 namespace GameEditor
 {
@@ -35,6 +36,7 @@ namespace GameEditor
         DateTime p1;
         DateTime p2;
         EditorManager EditorManager;
+        public static bool Play = false;
         protected override void OnResize(ResizeEventArgs e)
         {
             p2 = p1;
@@ -53,6 +55,7 @@ namespace GameEditor
         Transform carTransform;
         Scene GameContext = new Scene();
         GameLoop GameLoop;
+        PhysicsEngine PhysicsEngine;
         GameObject CameraObj;
 
         void Init()
@@ -65,9 +68,8 @@ namespace GameEditor
             IRenderer.ActiveRenderer = new BetterRenderer();
             IRenderer.ActiveRenderer.Init();
             GameLoop = new GameLoop(GameContext);
-
+            PhysicsEngine = new PhysicsEngine();
             EditorManager = new EditorManager(ClientSize);
-            EditorManager.LoadEditors();
             EditorManager.LÖÖPS = GameLoop;
         }
 
@@ -78,7 +80,7 @@ namespace GameEditor
             GL.Enable(EnableCap.DebugOutputSynchronous);
             GL.DebugMessageCallback(_debugProcCallback, IntPtr.Zero);
             Init();
-            //var sponza = AssetLoader.LoadAssets(@"D:\Blender\Models\SunTemple\SunTemple.glb", 1f);
+            var sponza = AssetLoader.LoadAssets(@"D:\Blender\Models\sponza\SponzaFixed.glb", 1f);
             var zelda = AssetLoader.LoadAssets(@"D:\Blender\Models\Zelda\scene.gltf", 0.01f);
             var car = AssetLoader.LoadAssets(@"D:\Blender\Models\Audi R8\Models\Audi R8.fbx", 0.1f);
             var Sphere = AssetLoader.LoadAssets(@"D:\Blender\Models\Sphere.fbx", 1f);
@@ -89,25 +91,32 @@ namespace GameEditor
             GameLoop.Instantiate(Sphere, null);
             GameLoop.Instantiate(car, null);
             GameLoop.Instantiate(zelda, null);
-            //GameLoop.Instantiate(sponza, null);
+            GameLoop.Instantiate(sponza, null);
+            var rb1 = new RigidBody();
+            rb1.Shape = new BepuPhysics.Collidables.Sphere(Sphere.Root.Transform.Scale.X);
+            Sphere.Root.AddScript(rb1);
+            var rb2 = new RigidBody();
+            rb2.RigidBodyType = RigidBodyType.Kinematic;
+            rb2.Shape = new BepuPhysics.Collidables.Box(1000, 1, 1000);
+            sponza.Root.AddScript(rb2);
             CompTest compTest = new CompTest();
             cam = new Camera(new Viewport(ClientRectangle));
             CameraObj = new GameObject("Main Camera");
-            CameraObj.AddComponent(cam);
+            CameraObj.AddScript(cam);
             GameLoop.Add(CameraObj);
             IRenderer.ActiveRenderer.AddCamera(cam);
-            GameLoop.Update();
             //------------
             //var skybox = new SkyboxFX();
             //GameLoop.Add(skybox, CameraObj);
-            CameraObj.AddComponent(compTest);
+            CameraObj.AddScript(compTest);
             //compTest.Material = zelda.Root.Transform.Children[0].Children[0].Children[0].Children[0].Children[6].Children[0].GameObject?.GetComponent<MeshRenderer>()!.Material;
-            zelda.Root.AddComponent(new TurnTable());
-            var t = Sphere.Root.GetComponent<Transform>()!;
+            zelda.Root.AddScript(new TurnTable());
+            var t = Sphere.Root.GetScript<Transform>()!;
             t.Position = new Vector3(0, 4, 0);
             t.Scale = new Vector3(0.1f);
-            carTransform = car.Root.GetComponent<Transform>()!;
+            carTransform = car.Root.GetScript<Transform>()!;
             //EditorManager.SelectedObj = GameLoop.
+            GameLoop.Update();
         }
 
 
@@ -156,23 +165,26 @@ namespace GameEditor
 
             float speedRot = 3f;
             float speed = 3f;
-            if (KeyboardState.IsKeyDown(Keys.I))
+            if (Play)
             {
-                carTransform.Position += carTransform.Forward * speed * (float)args.Time;
+                if (KeyboardState.IsKeyDown(Keys.I))
+                {
+                    carTransform.Position += carTransform.Forward * speed * (float)args.Time;
+                }
+                if (KeyboardState.IsKeyDown(Keys.K))
+                {
+                    carTransform.Position -= carTransform.Forward * speed * (float)args.Time;
+                }
+                if (KeyboardState.IsKeyDown(Keys.J))
+                {
+                    carAngleX += (float)args.Time * speedRot;
+                }
+                if (KeyboardState.IsKeyDown(Keys.L))
+                {
+                    carAngleX -= (float)args.Time * speedRot;
+                }
+                carTransform.LocalRotation = Quaternion.FromAxisAngle(Vector3.UnitY, carAngleX);
             }
-            if (KeyboardState.IsKeyDown(Keys.K))
-            {
-                carTransform.Position -= carTransform.Forward * speed * (float)args.Time;
-            }
-            if (KeyboardState.IsKeyDown(Keys.J))
-            {
-                carAngleX += (float)args.Time * speedRot;
-            }
-            if (KeyboardState.IsKeyDown(Keys.L))
-            {
-                carAngleX -= (float)args.Time * speedRot;
-            }
-            carTransform.LocalRotation = Quaternion.FromAxisAngle(Vector3.UnitY, carAngleX);
             if (cam.Transform != null)
             {
                 var fwd = cam.Transform.LocalForward;
@@ -226,7 +238,11 @@ namespace GameEditor
                 }
                 cam.Transform.LocalRotation = Quaternion.FromAxisAngle(Vector3.UnitY, angleX) * Quaternion.FromAxisAngle(Vector3.UnitX, angleY);
             }
-            GameLoop.Update();
+            if (Play)
+            {
+                GameLoop.Update();
+                PhysicsEngine.Simulate((float)args.Time);
+            }
             EditorManager.Update(this, (float)args.Time);
         }
 
