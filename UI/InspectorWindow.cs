@@ -4,6 +4,7 @@ using OpenTK.Mathematics;
 using RasterDraw.Core;
 using RasterDraw.Core.Helpers;
 using RasterDraw.Core.NativeScripts;
+using RasterDraw.Core.Physics;
 using RasterDraw.Core.Rendering;
 using RasterDraw.Core.Scripting;
 using RasterDraw.Serialization;
@@ -22,7 +23,7 @@ namespace GameEditor.UI
 
         public InspectorWindow()
         {
-            UIName= "Inspector";
+            UIName = "Inspector";
             ActiveEditors = new List<Editor>();
             CustomEditors = Utilities.GetTypesWithAnAttribute<CustomEditorAttribute>(Assembly.GetExecutingAssembly());
         }
@@ -41,10 +42,14 @@ namespace GameEditor.UI
                 {
                     InitInspector(selectedObjInfo.Target.Scripts[i]);
                 }
+                for (int i = 0; i < selectedObjInfo.Target.ComponentData.Count; i++)
+                {
+                    InitInspector(selectedObjInfo.Target.ComponentData[i]);
+                }
             }
         }
 
-        void InitInspector(GameScript gameScript)
+        Editor GetEditor(GameObjectAttachment gameScript)
         {
             Editor editor = null!;  //HAHA LMAO   
             var type = gameScript.GetType();
@@ -63,7 +68,12 @@ namespace GameEditor.UI
             {
                 editor = new DefaultEditor();
             }
+            return editor;
+        }
 
+        void InitInspector(GameObjectAttachment gameScript)
+        {
+            var editor = GetEditor(gameScript);
             editor.SetTargetObj(gameScript);
             editor.Init();
             ActiveEditors.Add(editor);
@@ -86,6 +96,16 @@ namespace GameEditor.UI
                         {
                             ActiveEditors[i].OnDrawUI();
                         }
+                    }
+                    ImGui.Spacing();
+                    ImGui.Separator();
+                    ImGui.Spacing();
+                    if (ImGui.Button("Add Script/Component"))
+                    {
+                        var scr = new RigidBody();
+                        InitInspector(scr);
+
+                        selectedObjInfo.Target.AddScript(scr);
                     }
                 }
             }

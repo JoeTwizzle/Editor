@@ -9,13 +9,10 @@ namespace GameEditor.Editors
     [CustomEditor(typeof(Transform))]
     class TransformEditor : Editor
     {
-
-        ObjectInfo objInfo;
         Transform myTransform;
 
         public override void Init()
         {
-            objInfo = new ObjectInfo(TargetObj);
             myTransform = (Transform)TargetObj;
             prevRotation = Quaternion.FromEulerAngles(0, 0, 0);
             Euler = myTransform.Rotation.ToEulerAngles() * MathExtensions.Rad2Deg;
@@ -42,13 +39,9 @@ namespace GameEditor.Editors
             //store external rotation delta in radians
             Euler = (Vector3)Euler + ((Vector3)eulerDelta);
 
-
-            Vector3 euler = (Vector3)Euler;
-
             //store internal rotation delta in degrees
             if (EditorHelper.DrawMember(myTransform.UIDText, "Rotation", ref Euler, typeof(Vector3)))
             {
-                var delta = ((Vector3)Euler - euler);
                 myTransform.Rotation = Quaternion.FromEulerAngles((Vector3)Euler * MathExtensions.Deg2Rad);
             }
 

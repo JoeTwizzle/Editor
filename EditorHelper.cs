@@ -12,6 +12,17 @@ namespace GameEditor
 {
     public static class EditorHelper
     {
+        public static bool DrawMember<T>(string uid, string name, ref T val, Type type) where T : unmanaged
+        {
+            if (type == null)
+            {
+                return false;
+            }
+            object v = (val);
+            bool changed = DrawMemberInternal(uid, name, ref v!, type);
+            val = (T)v!;
+            return changed;
+        }
         public static bool DrawMember(string uid, string name, ref object val, Type type)
         {
             if (type == null)
@@ -83,6 +94,33 @@ namespace GameEditor
                 if (ImGui.DragFloat4(identifier, ref vec, 0.05f))
                 {
                     value = new Vector4(vec.X, vec.Y, vec.Z, vec.W);
+                    val = value;
+                    changed = true;
+                }
+            }
+            else if (type == typeof(System.Numerics.Vector2))
+            {
+                var value = (System.Numerics.Vector2)val!;
+                if (ImGui.DragFloat2(identifier, ref value, 0.05f))
+                {
+                    val = value;
+                    changed = true;
+                }
+            }
+            else if (type == typeof(System.Numerics.Vector3))
+            {
+                var value = (System.Numerics.Vector3)val!;
+                if (ImGui.DragFloat3(identifier, ref value, 0.05f))
+                {
+                    val = value;
+                    changed = true;
+                }
+            }
+            else if (type == typeof(System.Numerics.Vector4))
+            {
+                var value = (System.Numerics.Vector4)val!;
+                if (ImGui.DragFloat4(identifier, ref value, 0.05f))
+                {
                     val = value;
                     changed = true;
                 }
