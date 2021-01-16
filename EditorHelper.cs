@@ -1,6 +1,6 @@
 ﻿using ImGuiNET;
 using OpenTK.Mathematics;
-using RasterDraw.Core.Helpers;
+using RasterDraw.Helpers;
 using RasterDraw.Serialization;
 using System;
 using System.Collections;

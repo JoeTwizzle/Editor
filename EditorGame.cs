@@ -8,7 +8,7 @@ using OpenTK.Windowing.GraphicsLibraryFramework;
 using RasterDraw.Assets;
 using RasterDraw.Core;
 using RasterDraw.Core.GUI;
-using RasterDraw.Core.Helpers;
+using RasterDraw.Helpers;
 using RasterDraw.Core.NativeScripts;
 using RasterDraw.Core.Rendering;
 using RasterDraw.Core.Scripting;
@@ -19,6 +19,8 @@ using System.Linq;
 using System.Runtime.InteropServices;
 using System.Diagnostics;
 using RasterDraw.Core.Physics;
+using System.Reflection;
+using RasterDraw.Rendering;
 
 namespace GameEditor
 {
@@ -41,6 +43,7 @@ namespace GameEditor
         {
             p2 = p1;
             p1 = DateTime.UtcNow;
+            base.OnResize(e);
 
             if (!IsMultiThreaded)
             {
@@ -48,8 +51,17 @@ namespace GameEditor
                 OnRenderFrame(new FrameEventArgs(p1.TimeOfDay.TotalSeconds - p2.TimeOfDay.TotalSeconds));
             }
 
-            base.OnResize(e);
-            EditorManager.Resize(e.Size);
+            if (!ShowGame)
+            {
+                EditorManager.Resize(e.Size);
+            }
+            else
+            {
+                RenderTexture.DefaultWidth = ClientSize.X;
+                RenderTexture.DefaultHeight = ClientSize.Y;
+                ICamera.MainCamera.Viewport = new Viewport(new Box2i(Vector2i.Zero, e.Size));
+            }
+
         }
         public Camera cam { get; private set; }
         Transform carTransform;
@@ -57,6 +69,7 @@ namespace GameEditor
         GameLoop GameLoop;
         PhysicsEngine PhysicsEngine;
         GameObject CameraObj;
+        bool ShowGame;
 
         void Init()
         {
@@ -65,8 +78,7 @@ namespace GameEditor
             Console.WriteLine(GL.GetString(StringName.Version));
 
             AssetLoader.Init();
-            IRenderer.ActiveRenderer = new BetterRenderer();
-            IRenderer.ActiveRenderer.Init();
+            RenderCore.Create();
             GameLoop = new GameLoop(GameContext);
             PhysicsEngine = new PhysicsEngine();
             EditorManager = new EditorManager(ClientSize);
@@ -80,8 +92,8 @@ namespace GameEditor
             GL.Enable(EnableCap.DebugOutputSynchronous);
             GL.DebugMessageCallback(_debugProcCallback, IntPtr.Zero);
             Init();
-            var sponza = AssetLoader.LoadAssets(@"D:\Blender\Models\sponza\SponzaFixed.glb", 1f);
-            var zelda = AssetLoader.LoadAssets(@"D:\Blender\Models\Zelda\scene.gltf", 0.01f);
+            var sponza = AssetLoader.LoadAssets(@"D:\Blender\Models\sponza-gltf-pbr\sponza.glb", 1f);
+            var zelda = AssetLoader.LoadAssets(@"D:\Blender\Models\JourneyPBR\Export\untitled.glb", 0.01f);
             var car = AssetLoader.LoadAssets(@"D:\Blender\Models\Audi R8\Models\Audi R8.fbx", 0.1f);
             var Sphere = AssetLoader.LoadAssets(@"D:\Blender\Models\Sphere.fbx", 1f);
             //var mc = AssetLoader.LoadAssets(@"D:\Blender\Models\beta map split.obj", 1f);
@@ -92,23 +104,31 @@ namespace GameEditor
             GameLoop.Instantiate(car, null);
             GameLoop.Instantiate(zelda, null);
             GameLoop.Instantiate(sponza, null);
+            var f = Assembly.GetExecutingAssembly().GetManifestResourceNames();
+            for (int i = 0; i < f.Length; i++)
+            {
+                Console.WriteLine(f[i]);
+            }
             var rb1 = new RigidBody();
+            rb1.DetectionSettings = RigidBody.ContinuousDetectionSettings;
             rb1.Shape = new BepuPhysics.Collidables.Sphere(Sphere.Root.Transform.Scale.X);
             Sphere.Root.AddScript(rb1);
+
             var rb2 = new RigidBody();
             rb2.RigidBodyType = RigidBodyType.Kinematic;
-            rb2.Shape = new BepuPhysics.Collidables.Box(1000, 1, 1000);
+            rb2.Shape = new BepuPhysics.Collidables.Box(1000, 0.1f, 1000);
             sponza.Root.AddScript(rb2);
-            CompTest compTest = new CompTest();
+
+            //CompTest compTest = new CompTest();
             cam = new Camera(new Viewport(ClientRectangle));
             CameraObj = new GameObject("Main Camera");
             CameraObj.AddScript(cam);
             GameLoop.Add(CameraObj);
-            IRenderer.ActiveRenderer.AddCamera(cam);
+            IRenderCore.CurrentRenderCore.Cameras.Add(cam);
             //------------
             //var skybox = new SkyboxFX();
             //GameLoop.Add(skybox, CameraObj);
-            CameraObj.AddScript(compTest);
+            //CameraObj.AddScript(compTest);
             //compTest.Material = zelda.Root.Transform.Children[0].Children[0].Children[0].Children[0].Children[6].Children[0].GameObject?.GetComponent<MeshRenderer>()!.Material;
             zelda.Root.AddScript(new TurnTable());
             var t = Sphere.Root.GetScript<Transform>()!;
@@ -123,16 +143,19 @@ namespace GameEditor
         float angleY = 0;
         float angleX = 0;
         float carAngleX = 0;
+        WindowState prevState;
         protected override void OnUpdateFrame(FrameEventArgs args)
         {
             if (KeyboardState.IsKeyDown(Keys.F11) && !KeyboardState.WasKeyDown(Keys.F11))
             {
                 if (WindowState == WindowState.Fullscreen)
                 {
-                    WindowState = WindowState.Maximized;
+                    WindowState = prevState;
                 }
                 else
                 {
+                    prevState = WindowState;
+                    WindowState = WindowState.Maximized;
                     WindowState = WindowState.Fullscreen;
                 }
             }
@@ -238,22 +261,52 @@ namespace GameEditor
                 }
                 cam.Transform.LocalRotation = Quaternion.FromAxisAngle(Vector3.UnitY, angleX) * Quaternion.FromAxisAngle(Vector3.UnitX, angleY);
             }
+            if (KeyboardState.IsKeyDown(Keys.F10) && !KeyboardState.WasKeyDown(Keys.F10))
+            {
+                ShowGame = !ShowGame;
+                if (!ShowGame)
+                {
+                    EditorManager.Resize(ClientSize);
+                }
+                else
+                {
+                    RenderTexture.DefaultWidth = ClientSize.X;
+                    RenderTexture.DefaultHeight = ClientSize.Y;
+                    ICamera.MainCamera.Viewport = new Viewport(new Box2i(Vector2i.Zero, ClientSize));
+                }
+            }
+
             if (Play)
             {
                 GameLoop.Update();
                 PhysicsEngine.Simulate((float)args.Time);
             }
-            EditorManager.Update(this, (float)args.Time);
+            if (!ShowGame)
+            {
+                EditorManager.Update(this, (float)args.Time);
+            }
+
         }
 
         protected override void OnRenderFrame(FrameEventArgs args)
         {
             GLObjectCleaner.Update((float)args.Time);
-            GL.Clear(ClearBufferMask.ColorBufferBit | ClearBufferMask.DepthBufferBit | ClearBufferMask.StencilBufferBit);
+
             GameLoop.Draw();
-            IRenderer.ActiveRenderer.Render();
-            EditorManager.Render();
-            //IRenderer.ActiveRenderer.PresentToScreen();
+
+            IRenderCore.CurrentRenderCore.DrawObjects();
+            IRenderCore.CurrentRenderCore.ClearDrawCalls();
+            RenderTexture.BindDefault();
+            GL.Clear(ClearBufferMask.ColorBufferBit | ClearBufferMask.DepthBufferBit | ClearBufferMask.StencilBufferBit);
+            if (!ShowGame)
+            {
+                EditorManager.Render();
+            }
+            else
+            {
+                ICamera.MainCamera.RenderTexture.ColorTexture.Bind();
+                IRenderCore.CurrentRenderCore.FullscreenPass();
+            }
             SwapBuffers();
         }
 
@@ -297,7 +350,7 @@ namespace GameEditor
                 default:
                     break;
             }
-            Console.WriteLine($"{debugSeverity} {debugType} | {Marshal.PtrToStringAnsi(message, length)} ID:{Id}");
+            Console.WriteLine($"{debugSource} {debugSeverity} {debugType} | {Marshal.PtrToStringAnsi(message, length)} ID:{Id}");
             Console.ForegroundColor = ConsoleColor.Gray;
         }
 

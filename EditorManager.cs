@@ -6,7 +6,7 @@ using OpenTK.Mathematics;
 using OpenTK.Windowing.Desktop;
 using RasterDraw.Core;
 using RasterDraw.Core.GUI;
-using RasterDraw.Core.Helpers;
+using RasterDraw.Helpers;
 using RasterDraw.Core.NativeScripts;
 using RasterDraw.Core.Rendering;
 using RasterDraw.Core.Scripting;
@@ -34,10 +34,12 @@ namespace GameEditor
             EditorWindows = new List<EditorWindow>();
             GuiController = new ImGuiController(Size.X, Size.Y);
             LoadEditors();
-            GetWindow<ViewportWindow>()!.IsActive = true;
+            vp = GetWindow<ViewportWindow>()!;
+            vp.IsActive = true;
             GetWindow<HierarchyWindow>()!.IsActive = true;
             GetWindow<InspectorWindow>()!.IsActive = true;
         }
+        ViewportWindow vp;
 
         void LoadEditors()
         {
@@ -57,7 +59,8 @@ namespace GameEditor
 
         public void Resize(Vector2i Size)
         {
-            this.Size = Size;
+            this.Size = Size; 
+            vp.InvalidateRegion();
             GuiController.WindowResized(Size.X, Size.Y);
         }
 
@@ -83,7 +86,7 @@ namespace GameEditor
             GuiController.MouseScroll(amount);
         }
 
-        public unsafe void DrawUI()
+        public void DrawUI()
         {
             uint dockSpaceID = 0;
             ImGui.SetNextWindowPos(new System.Numerics.Vector2());

@@ -1,7 +1,7 @@
 ﻿using OpenTK.Mathematics;
 using RasterDraw.Core.NativeScripts;
 using RasterDraw.Serialization;
-using RasterDraw.Core.Helpers;
+using RasterDraw.Helpers;
 using System;
 
 namespace GameEditor.Editors

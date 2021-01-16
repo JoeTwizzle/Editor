@@ -2,7 +2,7 @@
 using ImGuiNET;
 using OpenTK.Mathematics;
 using RasterDraw.Core;
-using RasterDraw.Core.Helpers;
+using RasterDraw.Helpers;
 using RasterDraw.Core.NativeScripts;
 using RasterDraw.Core.Physics;
 using RasterDraw.Core.Rendering;
