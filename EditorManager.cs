@@ -76,11 +76,12 @@ namespace GameEditor
             GuiController.WindowResized(Size.X, Size.Y);
         }
 
-        public void Update(GameWindow gw, float dt)
+        public override void Draw()
         {
-            GuiController.Update(gw, dt);
+            GuiController.Update(GameObject.GameLoop.NativeWindow, GameObject.GameLoop.RenderDeltaTime);
             DrawUI();
         }
+
 
         public override void PostDraw()
         {

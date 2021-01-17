@@ -14,7 +14,7 @@ namespace GameEditor.UI
 
         public GameViewportWindow()
         {
-            UIName = "Viewport";
+            UIName = "Game Viewport";
         }
         System.Numerics.Vector2 gameRegion;
         public override void DrawUI()
@@ -22,12 +22,13 @@ namespace GameEditor.UI
             if (ImGui.Begin(UIName, ref IsActive, ImGuiWindowFlags.NoCollapse))
             {
                 System.Numerics.Vector2 region = ImGui.GetContentRegionAvail();
+                //Console.WriteLine("Game cam: " + ICamera.MainCamera.RenderTexture.ColorTexture.Handle);
+                ImGui.Image(new IntPtr(ICamera.MainCamera.RenderTexture.ColorTexture.Handle), region, new System.Numerics.Vector2(0, 1), new System.Numerics.Vector2(1, 0));
                 if (gameRegion != region)
                 {
                     gameRegion = region;
                     OnResizeGame();
                 }
-                ImGui.Image(new IntPtr(ICamera.MainCamera.RenderTexture.ColorTexture.Handle), region, new System.Numerics.Vector2(0, 1), new System.Numerics.Vector2(1, 0));
             }
             ImGui.End();
         }

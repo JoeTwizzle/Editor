@@ -44,7 +44,7 @@ namespace GameEditor
             p2 = p1;
             p1 = DateTime.UtcNow;
             base.OnResize(e);
-           
+
             if (Play)
             {
                 OnUpdateFrame(new FrameEventArgs(p1.TimeOfDay.TotalSeconds - p2.TimeOfDay.TotalSeconds));
@@ -107,7 +107,7 @@ namespace GameEditor
             GL.Enable(EnableCap.DebugOutput);
             GL.Enable(EnableCap.DebugOutputSynchronous);
             GL.DebugMessageCallback(_debugProcCallback, IntPtr.Zero);
-            
+
             //Init game contexts
             Init();
 
@@ -135,7 +135,7 @@ namespace GameEditor
             rb2.RigidBodyType = RigidBodyType.Kinematic;
             rb2.Shape = new BepuPhysics.Collidables.Box(1000, 0.1f, 1000);
             sponza.Root.AddScript(rb2);
-           
+
             //Add Game Camera
             var c = new Camera(new Viewport(ClientRectangle));
             GameObject CameraObj = new GameObject("Main Camera");
@@ -199,15 +199,11 @@ namespace GameEditor
                 PhysicsEngine.Simulate((float)args.Time);
             }
             EditorLoop.Update((float)args.Time);
-            if (!ShowGame)
-            {
-                EditorManager.Update(this, (float)args.Time);
-            }
-
         }
 
         protected override void OnRenderFrame(FrameEventArgs args)
         {
+
             Input.Keyboard = KeyboardState;
             Input.Mouse = MouseState;
 

@@ -32,7 +32,7 @@ namespace GameEditor
         }
 
         private float fov = 90;
-        public float AspectRatio { get { return Viewport.AspectRatio; } }
+        public float AspectRatio { get; set; } = 1;
 
         private Viewport viewport;
         private float near;
@@ -42,12 +42,19 @@ namespace GameEditor
         {
             //return Matrix4.CreatePerspectiveFieldOfView(MathHelper.DegreesToRadians(FOV), AspectRatio, Near, Far);
             //float f = 1.0f / MathF.Tan(MathHelper.DegreesToRadians(FOV) / 2.0f);
-            var result = Matrix4.CreatePerspectiveFieldOfView(MathHelper.DegreesToRadians(FOV), AspectRatio, Near, Far);
-            result.Row2.X = 0;
-            result.Row2.Y = 0;
-            result.Row2.Z = (Near / (Far - Near));
-            result.Row3.Z = (Far * Near) / (Far - Near);
-            return result;
+            try
+            {
+                var result = Matrix4.CreatePerspectiveFieldOfView(MathHelper.DegreesToRadians(FOV), RenderTexture.Width / (float)RenderTexture.Height, Near, Far);
+                result.Row2.X = 0;
+                result.Row2.Y = 0;
+                result.Row2.Z = (Near / (Far - Near));
+                result.Row3.Z = (Far * Near) / (Far - Near);
+                return result;
+            }
+            catch
+            {
+                return Matrix4.Identity;
+            }
         }
 
         public RenderTexture RenderTexture { get; private set; }
@@ -62,6 +69,7 @@ namespace GameEditor
                 RenderTexture.Dispose();
                 RenderTexture = new RenderTexture();
                 RenderTexture.Init(Viewport.Resolution.X * SSAA, Viewport.Resolution.Y * SSAA);
+                RenderTexture.FrameBuffer.SetLabel("EDITOR CAMERA FBO");
             }
         }
 
