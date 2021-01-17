@@ -38,13 +38,13 @@ namespace GameEditor.UI
             ActiveEditors.Clear();
             if (selectedObjInfo.Target != null)
             {
-                for (int i = 0; i < selectedObjInfo.Target.Scripts.Count; i++)
-                {
-                    InitInspector(selectedObjInfo.Target.Scripts[i]);
-                }
                 for (int i = 0; i < selectedObjInfo.Target.ComponentData.Count; i++)
                 {
                     InitInspector(selectedObjInfo.Target.ComponentData[i]);
+                }
+                for (int i = 0; i < selectedObjInfo.Target.Scripts.Count; i++)
+                {
+                    InitInspector(selectedObjInfo.Target.Scripts[i]);
                 }
             }
         }

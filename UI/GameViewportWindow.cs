@@ -9,14 +9,10 @@ using OpenTK.Graphics.OpenGL4;
 
 namespace GameEditor.UI
 {
-    public class ViewportWindow : EditorWindow
+    public class GameViewportWindow : EditorWindow
     {
-        void SelectionChanged(GameObject selected)
-        {
-            Manager.GetWindow<InspectorWindow>()!.SetSelectedObj(selected);
-        }
 
-        public ViewportWindow()
+        public GameViewportWindow()
         {
             UIName = "Viewport";
         }
@@ -35,18 +31,14 @@ namespace GameEditor.UI
             }
             ImGui.End();
         }
+
         public void InvalidateRegion()
         {
             gameRegion = new System.Numerics.Vector2(-1, -1);
         }
-        RenderTexture PickingTexture;
 
         void OnResizeGame()
         {
-            PickingTexture = new RenderTexture();
-            PickingTexture.Init((int)gameRegion.X, (int)gameRegion.Y);
-            RenderTexture.DefaultWidth = (int)gameRegion.X;
-            RenderTexture.DefaultHeight = (int)gameRegion.Y;
             ICamera.MainCamera.Viewport = new Viewport(new Box2i(Vector2i.Zero, new Vector2i((int)gameRegion.X, (int)gameRegion.Y)));
         }
     }

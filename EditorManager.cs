@@ -26,7 +26,8 @@ namespace GameEditor
         bool showExample;
         Vector2i Size;
 
-        public GameLoop LÖÖPS;
+        public EditorCamera cam { get; private set; }
+        public GameLoop GameGameLoop;
 
         public EditorManager(Vector2i Size)
         {
@@ -34,13 +35,14 @@ namespace GameEditor
             EditorWindows = new List<EditorWindow>();
             GuiController = new ImGuiController(Size.X, Size.Y);
             LoadEditors();
-            vp = GetWindow<ViewportWindow>()!;
-            vp.IsActive = true;
+            evp = GetWindow<EditorViewportWindow>()!;
+            gvp = GetWindow<GameViewportWindow>()!;
+            gvp.IsActive = true;
             GetWindow<HierarchyWindow>()!.IsActive = true;
             GetWindow<InspectorWindow>()!.IsActive = true;
         }
-        ViewportWindow vp;
-
+        GameViewportWindow gvp;
+        EditorViewportWindow evp;
         void LoadEditors()
         {
             var types = Utilities.GetDerivedTypes(Assembly.GetExecutingAssembly(), typeof(EditorWindow));
@@ -57,10 +59,20 @@ namespace GameEditor
             return (T?)EditorWindows.FirstOrDefault(x => x.GetType() == typeof(T));
         }
 
+        public override void Init()
+        {
+            //Add Editor Camera
+            cam = new EditorCamera(new Viewport(new Box2i(0, 0, Size.X, Size.Y)));
+            GameObject EditorCam = new GameObject("EditorCamera");
+            EditorCam.AddScript(cam);
+            GameObject.GameLoop.Add(EditorCam);
+        }
+
         public void Resize(Vector2i Size)
         {
-            this.Size = Size; 
-            vp.InvalidateRegion();
+            this.Size = Size;
+            gvp.InvalidateRegion();
+            evp.InvalidateRegion();
             GuiController.WindowResized(Size.X, Size.Y);
         }
 
@@ -70,7 +82,7 @@ namespace GameEditor
             DrawUI();
         }
 
-        public void Render()
+        public override void PostDraw()
         {
             GL.Viewport(0, 0, Size.X, Size.Y);
             GuiController.Render();
@@ -95,9 +107,9 @@ namespace GameEditor
             {
                 if (ImGui.BeginMenuBar())
                 {
-                    if (ImGui.Button(EditorGame.Play ? "Pause" : "Play"))
+                    if (ImGui.Button(BaseGame.Play ? "Pause" : "Play"))
                     {
-                        EditorGame.Play = !EditorGame.Play;
+                        BaseGame.Play = !BaseGame.Play;
                     }
                     if (ImGui.MenuItem("File"))
                     {

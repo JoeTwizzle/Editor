@@ -11,9 +11,9 @@ namespace GameEditor
         public readonly Type TargetType;
         public CustomEditorAttribute(Type type)
         {
-            if (!type.IsSubclassOf(typeof(GameScript)))
+            if (!type.IsSubclassOf(typeof(GameObjectAttachment)))
             {
-                throw new ArgumentException("The provided type must derive from GameScript.");
+                throw new ArgumentException("The provided type must derive from GameObjectAttachment.");
             }
             TargetType = type;
         }

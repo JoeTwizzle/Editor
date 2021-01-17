@@ -103,7 +103,7 @@ namespace GameEditor.UI
                 }
                 //for (int i = 0; i < EditorManager.Instance.LÖÖPS.Scenes.Count; i++)
                 {
-                    Scene scene = Manager.LÖÖPS.MasterScene;
+                    Scene scene = Manager.GameGameLoop.MasterScene;
                     if (ImGui.TreeNodeEx(scene.UIDText, ImGuiTreeNodeFlags.OpenOnDoubleClick | ImGuiTreeNodeFlags.Framed | ImGuiTreeNodeFlags.DefaultOpen | ImGuiTreeNodeFlags.FramePadding, "Root Scene"))
                     {
                         var gos = scene.ReadOnlyGameObjects;

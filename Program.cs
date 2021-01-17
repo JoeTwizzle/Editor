@@ -12,7 +12,7 @@ namespace GameEditor
             a.Flags |= OpenTK.Windowing.Common.ContextFlags.Debug;
             var ga = GameWindowSettings.Default;
 
-            EditorGame g = new EditorGame(ga, a);
+            BaseGame g = new BaseGame(ga, a);
             g.Run();
         }
     }
