@@ -37,7 +37,8 @@ namespace GameEditor
             LoadEditors();
             evp = GetWindow<EditorViewportWindow>()!;
             gvp = GetWindow<GameViewportWindow>()!;
-            gvp.IsActive = true;
+            gvp.IsActive = true; 
+            evp.IsActive = true;
             GetWindow<HierarchyWindow>()!.IsActive = true;
             GetWindow<InspectorWindow>()!.IsActive = true;
         }

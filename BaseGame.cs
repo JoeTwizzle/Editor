@@ -55,7 +55,7 @@ namespace GameEditor
                 OnRenderFrame(new FrameEventArgs(p1.TimeOfDay.TotalSeconds - p2.TimeOfDay.TotalSeconds));
             }
 
-            if (!ShowGame)
+            if (EditMode)
             {
                 EditorManager.Resize(e.Size);
             }
@@ -80,10 +80,11 @@ namespace GameEditor
         GameLoop EditorLoop;
         PhysicsEngine PhysicsEngine;
 
-        bool ShowGame;
+        bool editMode;
 
         void Init()
         {
+            
             Console.WriteLine(GL.GetString(StringName.Renderer));
             Console.WriteLine(GL.GetString(StringName.Version));
 
@@ -150,6 +151,8 @@ namespace GameEditor
 
             Input.Keyboard = KeyboardState;
             Input.Mouse = MouseState;
+
+            EditMode = true;
         }
 
         protected override void OnUpdateFrame(FrameEventArgs args)
@@ -173,8 +176,8 @@ namespace GameEditor
 
             if (KeyboardState.IsKeyDown(Keys.F10) && !KeyboardState.WasKeyDown(Keys.F10))
             {
-                ShowGame = !ShowGame;
-                if (!ShowGame)
+                EditMode = !EditMode;
+                if (EditMode)
                 {
                     EditorManager.Resize(ClientSize);
                 }
@@ -215,14 +218,14 @@ namespace GameEditor
 
             RenderTexture.BindDefault();
             GL.Clear(ClearBufferMask.ColorBufferBit | ClearBufferMask.DepthBufferBit | ClearBufferMask.StencilBufferBit);
-            if (!ShowGame)
+            if (EditMode)
             {
                 EditorLoop.Draw((float)args.Time);
             }
             else
             {
-                ICamera.MainCamera.RenderTexture.ColorTexture.Bind();
-                IRenderCore.CurrentRenderCore.FullscreenPass();
+                var rt = ICamera.MainCamera.RenderTexture;
+                rt.FrameBuffer.Blit(0, new Box2i(0, 0, rt.Width, rt.Height), new Box2i(0, 0, ClientSize.X, ClientSize.Y));
             }
             SwapBuffers();
         }
@@ -230,7 +233,6 @@ namespace GameEditor
         protected override void OnTextInput(TextInputEventArgs e)
         {
             base.OnTextInput(e);
-
 
             EditorManager.CharPressed((char)e.Unicode);
         }
@@ -244,6 +246,23 @@ namespace GameEditor
 
         static DebugProc _debugProcCallback = LogDebug;
         static GCHandle _debugProcCallbackHandle;
+
+        public bool EditMode
+        {
+            get => editMode; set
+            {
+                editMode = value;
+                ModeChanged();
+            }
+        }
+
+        private void ModeChanged()
+        {
+            for (int i = 0; i < IRenderCore.CurrentRenderCore.Cameras.Count; i++)
+            {
+                IRenderCore.CurrentRenderCore.Cameras[i].MultiSample = !editMode;
+            }
+        }
 
         static void LogDebug(DebugSource debugSource, DebugType debugType, int Id, DebugSeverity debugSeverity, int length, IntPtr message, IntPtr userParams)
         {

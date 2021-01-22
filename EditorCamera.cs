@@ -16,6 +16,7 @@ namespace GameEditor
 {
     public class EditorCamera : GameScript, ICamera
     {
+        public bool MultiSample { get; set; }
         public bool KeepAspect { get; set; }
         private BitFlags64 layers;
         public Matrix4 ViewMatrix { get { return Matrix4.LookAt(Transform.LocalPosition, Transform.LocalPosition + Transform.LocalForward, Transform.LocalUp); } }

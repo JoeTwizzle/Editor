@@ -87,16 +87,47 @@ namespace GameEditor.UI
                 {
                     EditorHelper.DrawMember(selectedObjInfo.Target.UIDText, selectedObjInfo!.GetMemberInfoByName("Name"), selectedObjInfo.Target);
                     EditorHelper.DrawMember(selectedObjInfo.Target.UIDText, selectedObjInfo!.GetMemberInfoByName("IsActive"), selectedObjInfo.Target);
+                    bool remove = false;
+                    int r = -1;
                     for (int i = 0; i < ActiveEditors.Count; i++)
                     {
                         ImGui.Spacing();
                         ImGui.Separator();
                         ImGui.Spacing();
-                        if (ImGui.CollapsingHeader(ActiveEditors[i].TargetObjType.Name, ImGuiTreeNodeFlags.DefaultOpen))
+                        string inspectorID = $"{ActiveEditors[i].TargetObjType.Name}##{ActiveEditors[i].TargetObj.UIDText}";
+                        float xSpace = ImGui.GetContentRegionAvail().X;
+                        ImGui.Columns(2, inspectorID, false);
+                        ImGui.SetColumnWidth(0, xSpace * 0.95f);
+                        bool open = ImGui.CollapsingHeader(inspectorID, ImGuiTreeNodeFlags.DefaultOpen);
+                        ImGui.SameLine();
+                        ImGui.NextColumn();
+                        ImGui.SetNextItemWidth(ImGui.GetColumnWidth());
+                        remove = ImGui.Button($"x##{ActiveEditors[i].TargetObj.UIDText}");
+                        ImGui.Columns(1);
+                        if (open)
                         {
                             ActiveEditors[i].OnDrawUI();
+                            if (remove)
+                            {
+                                r = i;
+                                break;
+                            }
                         }
+                        
                     }
+                    if (remove)
+                    {
+                        if (ActiveEditors[r].TargetObj is ComponentData)
+                        {
+                            selectedObjInfo.Target.RemoveComponent((ComponentData)ActiveEditors[r].TargetObj);
+                        }
+                        if (ActiveEditors[r].TargetObj is GameScript)
+                        {
+                            selectedObjInfo.Target.RemoveScript((GameScript)ActiveEditors[r].TargetObj);
+                        }
+                        ActiveEditors.RemoveAt(r);
+                    }
+                    ImGui.Columns(1);
                     ImGui.Spacing();
                     ImGui.Separator();
                     ImGui.Spacing();

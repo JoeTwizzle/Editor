@@ -110,8 +110,6 @@ namespace GameEditor.Editors
         {
             if (ShapeIndex == 0)
             {
-                var ass = (Sphere)rigidBody.Shape;
-                r = ass.Radius;
                 shapeChanged |= EditorHelper.DrawMember(rigidBody.UIDText, "Radius", ref r, typeof(float));
                 r = MathF.Max(0.001f, r);
                 if (shapeChanged)
