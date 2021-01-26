@@ -3,6 +3,7 @@ using OpenTK.Mathematics;
 using RasterDraw.Core;
 using RasterDraw.Core.Rendering;
 using RasterDraw.Core.Scripting;
+using RasterDraw.Rendering;
 using System;
 using System.Collections.Generic;
 using System.Linq;

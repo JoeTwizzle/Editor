@@ -15,6 +15,8 @@ using System;
 using System.Collections.Generic;
 using System.Reflection;
 using System.Text;
+using RasterDraw.Rendering;
+using RasterDraw.Rendering.PostFX;
 
 namespace GameEditor
 {
@@ -26,7 +28,7 @@ namespace GameEditor
         bool showExample;
         Vector2i Size;
 
-        public EditorCamera cam { get; private set; }
+        public Camera cam { get; private set; }
         public GameLoop GameGameLoop;
 
         public EditorManager(Vector2i Size)
@@ -37,7 +39,7 @@ namespace GameEditor
             LoadEditors();
             evp = GetWindow<EditorViewportWindow>()!;
             gvp = GetWindow<GameViewportWindow>()!;
-            gvp.IsActive = true; 
+            gvp.IsActive = true;
             evp.IsActive = true;
             GetWindow<HierarchyWindow>()!.IsActive = true;
             GetWindow<InspectorWindow>()!.IsActive = true;
@@ -63,11 +65,19 @@ namespace GameEditor
         public override void Init()
         {
             //Add Editor Camera
-            cam = new EditorCamera(new Viewport(new Box2i(0, 0, Size.X, Size.Y)));
-            GameObject EditorCam = new GameObject("EditorCamera");
+            cam = new Camera(new Viewport(new Box2i(0, 0, Size.X, Size.Y)));
+            GameObject EditorCam = new GameObject("Editor Camera");
+            cam.MSAA = 1;
+            cam.MultiSample = false;
             EditorCam.AddScript(cam);
+            EditorCam.AddScript(new EditorCameraController());
+            var stack = new PostProcessStack();
+            //stack.AddEffect(new BloomEffect());
+            //stack.AddEffect(new ToneMapACES());
+            EditorCam.AddScript(stack);
             GameObject.GameLoop.Add(EditorCam);
         }
+        
 
         public void Resize(Vector2i Size)
         {
@@ -77,17 +87,10 @@ namespace GameEditor
             GuiController.WindowResized(Size.X, Size.Y);
         }
 
-        public override void Draw()
-        {
-            GuiController.Update(GameObject.GameLoop.NativeWindow, GameObject.GameLoop.RenderDeltaTime);
-            DrawUI();
-        }
-
-
-        public override void PostDraw()
+        public void Render(bool discard = false)
         {
             GL.Viewport(0, 0, Size.X, Size.Y);
-            GuiController.Render();
+            GuiController.Render(discard);
         }
 
         public void CharPressed(char c)
@@ -102,6 +105,7 @@ namespace GameEditor
 
         public void DrawUI()
         {
+            GuiController.Update(GameObject.GameLoop.NativeWindow, GameObject.GameLoop.RenderDeltaTime);
             uint dockSpaceID = 0;
             ImGui.SetNextWindowPos(new System.Numerics.Vector2());
             ImGui.SetNextWindowSize(new System.Numerics.Vector2(Size.X, Size.Y));

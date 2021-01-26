@@ -6,6 +6,7 @@ using RasterDraw.Core.Scripting;
 using System;
 using System.Collections.Generic;
 using OpenTK.Graphics.OpenGL4;
+using RasterDraw.Rendering;
 
 namespace GameEditor.UI
 {

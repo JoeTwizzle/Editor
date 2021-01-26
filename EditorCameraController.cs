@@ -14,112 +14,14 @@ using System.Threading.Tasks;
 
 namespace GameEditor
 {
-    public class EditorCamera : GameScript, ICamera
+    public class EditorCameraController : GameScript
     {
-        public bool MultiSample { get; set; }
-        public bool KeepAspect { get; set; }
-        private BitFlags64 layers;
-        public Matrix4 ViewMatrix { get { return Matrix4.LookAt(Transform.LocalPosition, Transform.LocalPosition + Transform.LocalForward, Transform.LocalUp); } }
-        public Matrix4 PerspectiveMatrix { get { return ComputePerspective(); } }
-        public Matrix4 ProjectionMatrix { get { return ViewMatrix * PerspectiveMatrix; } }
-
-        private int ssaa = 1;
-        public int SSAA
+        public override void Init()
         {
-            get => ssaa; set
-            {
-                ssaa = Math.Max(value, 1);
-            }
-        }
-
-        private float fov = 90;
-        public float AspectRatio { get; set; } = 1;
-
-        private Viewport viewport;
-        private float near;
-        private float far;
-
-        Matrix4 ComputePerspective()
-        {
-            //return Matrix4.CreatePerspectiveFieldOfView(MathHelper.DegreesToRadians(FOV), AspectRatio, Near, Far);
-            //float f = 1.0f / MathF.Tan(MathHelper.DegreesToRadians(FOV) / 2.0f);
-            try
-            {
-                var result = Matrix4.CreatePerspectiveFieldOfView(MathHelper.DegreesToRadians(FOV), RenderTexture.Width / (float)RenderTexture.Height, Near, Far);
-                result.Row2.X = 0;
-                result.Row2.Y = 0;
-                result.Row2.Z = (Near / (Far - Near));
-                result.Row3.Z = (Far * Near) / (Far - Near);
-                return result;
-            }
-            catch
-            {
-                return Matrix4.Identity;
-            }
-        }
-
-        public RenderTexture RenderTexture { get; private set; }
-        public Transform Transform { get; set; }
-        public BitFlags64 Layers { get => layers; set => layers = value; }
-        public Viewport Viewport
-        {
-            get => viewport;
-            set
-            {
-                viewport = value;
-                RenderTexture.Dispose();
-                RenderTexture = new RenderTexture();
-                RenderTexture.Init(Viewport.Resolution.X * SSAA, Viewport.Resolution.Y * SSAA);
-                RenderTexture.FrameBuffer.SetLabel("EDITOR CAMERA FBO");
-            }
-        }
-
-        public float Near
-        {
-            get => near; set
-            {
-                if (value <= 0)
-                {
-                    return;
-                }
-                near = value;
-            }
-        }
-
-        public float Far
-        {
-            get => far; set
-            {
-                if (value <= near)
-                {
-                    return;
-                }
-                far = value;
-            }
-        }
-
-        public float FOV
-        {
-            get => fov; set
-            {
-                fov = MathHelper.Clamp(value, 0.1f, 179.9f);
-            }
-        }
-
-        public EditorCamera(Viewport viewport)
-        {
-            RenderTexture = new RenderTexture();
-            RenderTexture.Init(Viewport.Resolution.X * SSAA, Viewport.Resolution.Y * SSAA);
-            Viewport = viewport;
-            Layers = new BitFlags64(~0uL);
-            near = 0.06f;
-            far = 100000;
-            FOV = 90f;
-            Transform = Transform.Create();
-            IRenderCore.CurrentRenderCore.Cameras.Add(this);
+            Transform = GameObject.Transform;
         }
         float angleX, angleY;
-
+        Transform Transform;
         public override void Update()
         {
             float speedRot = 3f;

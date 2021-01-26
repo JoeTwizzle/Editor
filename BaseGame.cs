@@ -21,6 +21,7 @@ using System.Diagnostics;
 using RasterDraw.Core.Physics;
 using System.Reflection;
 using RasterDraw.Rendering;
+using RasterDraw.Rendering.PostFX;
 
 namespace GameEditor
 {
@@ -84,7 +85,6 @@ namespace GameEditor
 
         void Init()
         {
-            
             Console.WriteLine(GL.GetString(StringName.Renderer));
             Console.WriteLine(GL.GetString(StringName.Version));
 
@@ -108,7 +108,6 @@ namespace GameEditor
             GL.Enable(EnableCap.DebugOutput);
             GL.Enable(EnableCap.DebugOutputSynchronous);
             GL.DebugMessageCallback(_debugProcCallback, IntPtr.Zero);
-
             //Init game contexts
             Init();
 
@@ -141,6 +140,10 @@ namespace GameEditor
             var c = new Camera(new Viewport(ClientRectangle));
             GameObject CameraObj = new GameObject("Main Camera");
             CameraObj.AddScript(c);
+            var stack = new PostProcessStack();
+            stack.AddEffect(new BloomEffect());
+            stack.AddEffect(new ToneMapACES());
+            CameraObj.AddScript(stack);
             GameLoop.Add(CameraObj);
 
             //Spinny thingy
@@ -206,21 +209,25 @@ namespace GameEditor
 
         protected override void OnRenderFrame(FrameEventArgs args)
         {
-
             Input.Keyboard = KeyboardState;
             Input.Mouse = MouseState;
 
             GLObjectCleaner.Update((float)args.Time);
 
             GameLoop.Draw((float)args.Time);
+            EditorLoop.Draw((float)args.Time);
             IRenderCore.CurrentRenderCore.DrawObjects();
+            GameLoop.PostDraw();
+            EditorLoop.PostDraw();
             IRenderCore.CurrentRenderCore.ClearDrawCalls();
 
             RenderTexture.BindDefault();
             GL.Clear(ClearBufferMask.ColorBufferBit | ClearBufferMask.DepthBufferBit | ClearBufferMask.StencilBufferBit);
+            
             if (EditMode)
             {
-                EditorLoop.Draw((float)args.Time);
+                EditorManager.DrawUI();
+                EditorManager.Render();
             }
             else
             {
