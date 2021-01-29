@@ -8,7 +8,6 @@ using RasterDraw.Core;
 using RasterDraw.Core.GUI;
 using RasterDraw.Helpers;
 using RasterDraw.Core.NativeScripts;
-using RasterDraw.Core.Rendering;
 using RasterDraw.Core.Scripting;
 using System.Linq;
 using System;
@@ -61,23 +60,20 @@ namespace GameEditor
         {
             return (T?)EditorWindows.FirstOrDefault(x => x.GetType() == typeof(T));
         }
-
+        GameObject EditorCam;
         public override void Init()
         {
             //Add Editor Camera
             cam = new Camera(new Viewport(new Box2i(0, 0, Size.X, Size.Y)));
-            GameObject EditorCam = new GameObject("Editor Camera");
+            EditorCam = new GameObject("Editor Camera");
             cam.MSAA = 1;
             cam.MultiSample = false;
             EditorCam.AddScript(cam);
             EditorCam.AddScript(new EditorCameraController());
-            var stack = new PostProcessStack();
-            //stack.AddEffect(new BloomEffect());
-            //stack.AddEffect(new ToneMapACES());
-            EditorCam.AddScript(stack);
+
             GameObject.GameLoop.Add(EditorCam);
         }
-        
+
 
         public void Resize(Vector2i Size)
         {
@@ -102,9 +98,18 @@ namespace GameEditor
         {
             GuiController.MouseScroll(amount);
         }
-
+        bool initDraw;
         public void DrawUI()
         {
+            if (!initDraw)
+            {
+                var stack = new PostProcessStack();
+                stack.AddEffect(new BloomEffect());
+                stack.AddEffect(new ToneMapACES());
+                EditorCam.AddScript(stack);
+                initDraw = true;
+            }
+
             GuiController.Update(GameObject.GameLoop.NativeWindow, GameObject.GameLoop.RenderDeltaTime);
             uint dockSpaceID = 0;
             ImGui.SetNextWindowPos(new System.Numerics.Vector2());

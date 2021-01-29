@@ -5,7 +5,6 @@ using RasterDraw.Core;
 using RasterDraw.Helpers;
 using RasterDraw.Core.NativeScripts;
 using RasterDraw.Core.Physics;
-using RasterDraw.Core.Rendering;
 using RasterDraw.Core.Scripting;
 using RasterDraw.Serialization;
 using System;

@@ -10,7 +10,6 @@ using RasterDraw.Core;
 using RasterDraw.Core.GUI;
 using RasterDraw.Helpers;
 using RasterDraw.Core.NativeScripts;
-using RasterDraw.Core.Rendering;
 using RasterDraw.Core.Scripting;
 using GLGraphics;
 using GLGraphics.Helpers;
@@ -46,52 +45,39 @@ namespace GameEditor
             p1 = DateTime.UtcNow;
             base.OnResize(e);
 
-            if (Play)
-            {
-                OnUpdateFrame(new FrameEventArgs(p1.TimeOfDay.TotalSeconds - p2.TimeOfDay.TotalSeconds));
-            }
 
             if (!IsMultiThreaded)
             {
+                if (Play)
+                {
+                    OnUpdateFrame(new FrameEventArgs(p1.TimeOfDay.TotalSeconds - p2.TimeOfDay.TotalSeconds));
+                }
                 OnRenderFrame(new FrameEventArgs(p1.TimeOfDay.TotalSeconds - p2.TimeOfDay.TotalSeconds));
             }
-
-            if (EditMode)
-            {
-                EditorManager.Resize(e.Size);
-            }
-            else
-            {
-                RenderTexture.DefaultWidth = ClientSize.X;
-                RenderTexture.DefaultHeight = ClientSize.Y;
-                for (int i = 0; i < IRenderCore.CurrentRenderCore.Cameras.Count; i++)
-                {
-                    var cam = IRenderCore.CurrentRenderCore.Cameras[i];
-                    if (!cam.KeepAspect)
-                    {
-                        cam.Viewport = new Viewport(new Box2i(Vector2i.Zero, e.Size));
-                    }
-                }
-            }
+            resize = true;
         }
-
-
-
+        protected override void OnRefresh()
+        {
+            resize = true;
+            base.OnRefresh();
+        }
         GameLoop GameLoop;
         GameLoop EditorLoop;
         PhysicsEngine PhysicsEngine;
-
+        public static RenderTexture DisplayRT;
+        GLProgram FullscreenQuadProgram;
         bool editMode;
 
         void Init()
         {
             Console.WriteLine(GL.GetString(StringName.Renderer));
             Console.WriteLine(GL.GetString(StringName.Version));
-
             AssetLoader.Init();
             RenderCore.Create();
             GameLoop = new GameLoop(this);
             EditorLoop = new GameLoop(this);
+            DisplayRT = new RenderTexture();
+            FullscreenQuadProgram = ShaderUtils.CreateFromResource("RasterDraw.Shaders.SimpleVert.glsl", "RasterDraw.Shaders.SimpleFrag.glsl");
             PhysicsEngine = new PhysicsEngine();
             EditorManager = new EditorManager(ClientSize);
             EditorManager.GameGameLoop = GameLoop;
@@ -138,6 +124,7 @@ namespace GameEditor
 
             //Add Game Camera
             var c = new Camera(new Viewport(ClientRectangle));
+            ICamera.MainCamera = c;
             GameObject CameraObj = new GameObject("Main Camera");
             CameraObj.AddScript(c);
             var stack = new PostProcessStack();
@@ -158,6 +145,7 @@ namespace GameEditor
             EditMode = true;
         }
 
+        bool resize = false;
         protected override void OnUpdateFrame(FrameEventArgs args)
         {
             p2 = p1;
@@ -175,11 +163,25 @@ namespace GameEditor
                     VSync = VSyncMode.Adaptive;
                 }
             }
-
-
             if (KeyboardState.IsKeyDown(Keys.F10) && !KeyboardState.WasKeyDown(Keys.F10))
             {
+                resize = true;
                 EditMode = !EditMode;
+            }         
+
+            if (Play)
+            {
+                GameLoop.Update((float)args.Time);
+                PhysicsEngine.Simulate((float)args.Time);
+            }
+            EditorLoop.Update((float)args.Time);
+        }
+
+        protected override void OnRenderFrame(FrameEventArgs args)
+        {
+            if (resize)
+            {
+                ModeChanged();
                 if (EditMode)
                 {
                     EditorManager.Resize(ClientSize);
@@ -197,20 +199,8 @@ namespace GameEditor
                         }
                     }
                 }
+                resize = false;
             }
-
-            if (Play)
-            {
-                GameLoop.Update((float)args.Time);
-                PhysicsEngine.Simulate((float)args.Time);
-            }
-            EditorLoop.Update((float)args.Time);
-        }
-
-        protected override void OnRenderFrame(FrameEventArgs args)
-        {
-            Input.Keyboard = KeyboardState;
-            Input.Mouse = MouseState;
 
             GLObjectCleaner.Update((float)args.Time);
 
@@ -218,12 +208,19 @@ namespace GameEditor
             EditorLoop.Draw((float)args.Time);
             IRenderCore.CurrentRenderCore.DrawObjects();
             GameLoop.PostDraw();
+            var rt = ICamera.MainCamera.RenderTexture;
+            if (DisplayRT.Width != rt.Width || DisplayRT.Height != rt.Height)
+            {
+                DisplayRT.Dispose();
+                DisplayRT.Init(rt.Width, rt.Height, 1, rt.ColorTexture.TextureFormat, rt.DepthTexture.TextureFormat);
+            }
+            rt.FrameBuffer.Blit(DisplayRT.FrameBuffer, new Box2i(0, 0, rt.Width, rt.Height), new Box2i(0, 0, DisplayRT.Width, DisplayRT.Height));
             EditorLoop.PostDraw();
             IRenderCore.CurrentRenderCore.ClearDrawCalls();
 
             RenderTexture.BindDefault();
             GL.Clear(ClearBufferMask.ColorBufferBit | ClearBufferMask.DepthBufferBit | ClearBufferMask.StencilBufferBit);
-            
+
             if (EditMode)
             {
                 EditorManager.DrawUI();
@@ -231,8 +228,9 @@ namespace GameEditor
             }
             else
             {
-                var rt = ICamera.MainCamera.RenderTexture;
-                rt.FrameBuffer.Blit(0, new Box2i(0, 0, rt.Width, rt.Height), new Box2i(0, 0, ClientSize.X, ClientSize.Y));
+                DisplayRT.ColorTexture.Bind();
+                FullscreenQuadProgram.Bind();
+                IRenderCore.CurrentRenderCore.FullscreenPass();
             }
             SwapBuffers();
         }
@@ -259,7 +257,6 @@ namespace GameEditor
             get => editMode; set
             {
                 editMode = value;
-                ModeChanged();
             }
         }
 
@@ -296,114 +293,5 @@ namespace GameEditor
             Console.WriteLine($"{debugSource} {debugSeverity} {debugType} | {Marshal.PtrToStringAnsi(message, length)} ID:{Id}");
             Console.ForegroundColor = ConsoleColor.Gray;
         }
-
-        //    protected override void OnLoad()
-        //    {
-
-        //        v = new Vertex[]
-        //        {
-        //            new Vertex(new Vector3( -1.0f,-1.0f,-1.0f)), // triangle 1 : begin
-        //            new Vertex(new Vector3( -1.0f,-1.0f, 1.0f)),
-        //            new Vertex(new Vector3( -1.0f, 1.0f, 1.0f)), // triangle 1 : end
-        //            new Vertex(new Vector3( 1.0f, 1.0f,-1.0f)), // triangle 2 : begin
-        //            new Vertex(new Vector3( -1.0f,-1.0f,-1.0f)),
-        //            new Vertex(new Vector3( -1.0f, 1.0f,-1.0f)), // triangle 2 : end
-        //            new Vertex(new Vector3( 1.0f,-1.0f, 1.0f)),
-        //            new Vertex(new Vector3( -1.0f,-1.0f,-1.0f)),
-        //            new Vertex(new Vector3( 1.0f,-1.0f,-1.0f)),
-        //            new Vertex(new Vector3( 1.0f, 1.0f,-1.0f)),
-        //            new Vertex(new Vector3( 1.0f,-1.0f,-1.0f)),
-        //            new Vertex(new Vector3( -1.0f,-1.0f,-1.0f)),
-        //            new Vertex(new Vector3( -1.0f,-1.0f,-1.0f)),
-        //            new Vertex(new Vector3( -1.0f, 1.0f, 1.0f)),
-        //            new Vertex(new Vector3( -1.0f, 1.0f,-1.0f)),
-        //            new Vertex(new Vector3( 1.0f,-1.0f, 1.0f)),
-        //            new Vertex(new Vector3( -1.0f,-1.0f, 1.0f)),
-        //            new Vertex(new Vector3( -1.0f,-1.0f,-1.0f)),
-        //            new Vertex(new Vector3( -1.0f, 1.0f, 1.0f)),
-        //            new Vertex(new Vector3( -1.0f,-1.0f, 1.0f)),
-        //            new Vertex(new Vector3( 1.0f,-1.0f, 1.0f)),
-        //            new Vertex(new Vector3( 1.0f, 1.0f, 1.0f)),
-        //            new Vertex(new Vector3( 1.0f,-1.0f,-1.0f)),
-        //            new Vertex(new Vector3( 1.0f, 1.0f,-1.0f)),
-        //            new Vertex(new Vector3( 1.0f,-1.0f,-1.0f)),
-        //            new Vertex(new Vector3( 1.0f, 1.0f, 1.0f)),
-        //            new Vertex(new Vector3( 1.0f,-1.0f, 1.0f)),
-        //            new Vertex(new Vector3( 1.0f, 1.0f, 1.0f)),
-        //            new Vertex(new Vector3( 1.0f, 1.0f,-1.0f)),
-        //            new Vertex(new Vector3( -1.0f, 1.0f,-1.0f)),
-        //            new Vertex(new Vector3( 1.0f, 1.0f, 1.0f)),
-        //            new Vertex(new Vector3( -1.0f, 1.0f,-1.0f)),
-        //            new Vertex(new Vector3( -1.0f, 1.0f, 1.0f)),
-        //            new Vertex(new Vector3( 1.0f, 1.0f, 1.0f)),
-        //            new Vertex(new Vector3( -1.0f, 1.0f, 1.0f)),
-        //            new Vertex(new Vector3( 1.0f,-1.0f, 1.0f ))};
-        //        GL.ClearColor(Color4.Black);
-        //        unsafe
-        //        { 
-        //            //GLFW.CreateWindow(640, 480, "Help me!!!", null, WindowPtr);
-        //            //GLFW.SetWindowAttrib(WindowPtr, WindowAttributeSetter.Decorated, false);
-        //        }
-
-        //        program = new ShaderProgram();
-
-        //        Shader vShader = new Shader(ShaderType.VertexShader);
-        //        vShader.SetSource(
-        //        @"#version 450
-        //        in vec3 Position;
-
-        //        uniform mat4 u_MVP;
-
-        //        void main()
-        //        {
-        //            gl_Position = u_MVP * vec4(Position, 1.0);
-        //        }");
-
-        //        Shader fShader = new Shader(ShaderType.FragmentShader);
-        //        fShader.SetSource(
-        //        @"#version 450
-        //        out vec4 color;
-
-        //        void main()
-        //        {
-        //           color = vec4(1,1,1,1);
-        //        }");
-
-        //        program.AddShader(vShader);
-        //        checkError();
-        //        program.AddShader(fShader);
-        //        VAO = new VertexArray();
-        //        VAO.Bind();
-        //        buffer = new GLBuffer();
-        //        buffer.Init(BufferType.ArrayBuffer, v);
-        //        VAO.BindAttribute(program.ProgramInfo.GetAttribLocation("Position"), buffer, 3, VertexAttribPointerType.Float, buffer.DataSize, 0, false);
-        //        Matrix4 m = Matrix4.CreateOrthographic(10, 10, 0.01f, 100);
-        //        GL.ProgramUniformMatrix4(program.Handle, program.ProgramInfo.GetUniformLocation("MVP"), false, ref m);
-        //        Texture2D texture = new Texture2D();
-        //        texture.InitFromFile(@"C:\Users\Jaouad-PC\Desktop\unknown.png");
-        //    }
-        //    protected override void OnUpdateFrame(FrameEventArgs args)
-        //    {
-        //        GLObjectCleaner.Update((float)args.Time);
-        //    }
-        //    protected override void OnRenderFrame(FrameEventArgs args)
-        //    {
-
-        //        Graphics.Clear();
-        //        checkError();
-        //        GL.DrawArrays(PrimitiveType.Triangles, 0, v.Length);
-        //        Graphics.Print();
-        //    }
-        //}
-        //[StructLayout(LayoutKind.Sequential)]
-        //struct Vertex
-        //{
-        //    Vector3 Position;
-
-        //    public Vertex(Vector3 position)
-        //    {
-        //        Position = position;
-        //    }
-        //}
     }
 }

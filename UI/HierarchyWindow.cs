@@ -2,7 +2,7 @@
 using OpenTK.Mathematics;
 using RasterDraw.Core;
 using RasterDraw.Core.NativeScripts;
-using RasterDraw.Core.Rendering;
+using RasterDraw.Rendering;
 using RasterDraw.Core.Scripting;
 using System;
 using System.Collections.Generic;
@@ -106,7 +106,7 @@ namespace GameEditor.UI
                     Scene scene = Manager.GameGameLoop.MasterScene;
                     if (ImGui.TreeNodeEx(scene.UIDText, ImGuiTreeNodeFlags.OpenOnDoubleClick | ImGuiTreeNodeFlags.Framed | ImGuiTreeNodeFlags.DefaultOpen | ImGuiTreeNodeFlags.FramePadding, "Root Scene"))
                     {
-                        var gos = scene.ReadOnlyGameObjects;
+                        var gos = scene.RootObjects;
                         for (int j = 0; j < gos.Count; j++)
                         {
                             if (gos[j].Transform.Parent == null)

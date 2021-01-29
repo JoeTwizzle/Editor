@@ -17,7 +17,7 @@ namespace GameEditor.UI
         int i = 0;
         public override void DrawUI()
         {
-            vals[i] = Manager.GameObject.GameLoop.DeltaTime * 1000;
+            vals[i] = Manager.GameObject.GameLoop.RenderDeltaTime * 1000;
             i++;
             i %= vals.Length;
             if (ImGui.Begin(UIName, ref IsActive, ImGuiWindowFlags.NoCollapse))

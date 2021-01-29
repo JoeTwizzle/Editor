@@ -1,12 +1,11 @@
 ﻿using ImGuiNET;
 using OpenTK.Mathematics;
 using RasterDraw.Core;
-using RasterDraw.Core.Rendering;
+using RasterDraw.Rendering;
 using RasterDraw.Core.Scripting;
 using System;
 using System.Collections.Generic;
 using OpenTK.Graphics.OpenGL4;
-using RasterDraw.Rendering;
 
 namespace GameEditor.UI
 {
@@ -24,7 +23,7 @@ namespace GameEditor.UI
             {
                 System.Numerics.Vector2 region = ImGui.GetContentRegionAvail();
                 //Console.WriteLine("Game cam: " + ICamera.MainCamera.RenderTexture.ColorTexture.Handle);
-                ImGui.Image(new IntPtr(ICamera.MainCamera.RenderTexture.ColorTexture.Handle), region, new System.Numerics.Vector2(0, 1), new System.Numerics.Vector2(1, 0));
+                ImGui.Image(new IntPtr(BaseGame.DisplayRT.ColorTexture.Handle), region, new System.Numerics.Vector2(0, 1), new System.Numerics.Vector2(1, 0));
                 if (gameRegion != region)
                 {
                     gameRegion = region;

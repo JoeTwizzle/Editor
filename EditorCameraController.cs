@@ -3,7 +3,6 @@ using OpenTK.Windowing.GraphicsLibraryFramework;
 using RasterDraw;
 using RasterDraw.Core;
 using RasterDraw.Core.NativeScripts;
-using RasterDraw.Core.Rendering;
 using RasterDraw.Core.Scripting;
 using RasterDraw.Rendering;
 using System;
@@ -22,7 +21,7 @@ namespace GameEditor
         }
         float angleX, angleY;
         Transform Transform;
-        public override void Update()
+        public override void PostUpdate()
         {
             float speedRot = 3f;
             float speed = 3f;
