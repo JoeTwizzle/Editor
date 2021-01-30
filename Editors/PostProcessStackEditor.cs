@@ -37,6 +37,7 @@ namespace GameEditor.Editors
                 ImGui.Separator();
                 var uiNameInfo = effectInfos[i].GetMemberInfoByName("UIName")!;
                 ImGui.Text((string)(uiNameInfo.GetValue(effectInfos[i].Target)!));
+                ImGui.Separator();
                 for (int j = 0; j < effectInfos[i].variableMembers.Length; j++)
                 {
                     var member = effectInfos[i].variableMembers[j];
