@@ -49,7 +49,7 @@ namespace GameEditor.UI
             }
         }
 
-        Editor GetEditor(NamedObject gameScript)
+        Editor GetEditor(GameObjectAttachment gameScript)
         {
             Editor editor = null!;  //HAHA LMAO   
             var type = gameScript.GetType();
@@ -72,14 +72,14 @@ namespace GameEditor.UI
         }
         List<string> gameScriptNames;
         List<Type> gameScripts;
-        void InitInspector(NamedObject gameScript)
+        void InitInspector(GameObjectAttachment gameScript)
         {
             var all = AppDomain.CurrentDomain.GetAssemblies();
             gameScriptNames = new List<string>();
             gameScripts = new List<Type>();
             for (int i = 0; i < all.Length; i++)
             {
-                var gs = Utilities.GetDerivedTypes(all[i], typeof(GameScript)).ToList();
+                var gs = Utilities.GetDerivedTypes(all[i], typeof(GameObjectAttachment)).ToList();
                 gameScripts.AddRange(gs);
                 for (int j = 0; j < gs.Count; j++)
                 {
@@ -212,9 +212,16 @@ namespace GameEditor.UI
                     {
                         return;
                     }
-                    var scr = (GameScript)Activator.CreateInstance(gameScripts[i])!;
+                    var scr = (GameObjectAttachment)Activator.CreateInstance(gameScripts[i])!;
                     InitInspector(scr);
-                    selectedObjInfo.Target.AddScript(scr);
+                    if (scr is GameScript a)
+                    {
+                        selectedObjInfo.Target.AddScript(a);
+                    }
+                    if (scr is ComponentData b)
+                    {
+                        selectedObjInfo.Target.AddComponent(b);
+                    }
                 }
             }
         }

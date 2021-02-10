@@ -13,7 +13,7 @@ namespace GameEditor
         {
             if (!type.IsSubclassOf(typeof(NamedObject)))
             {
-                throw new ArgumentException("The provided type must derive from GameObjectAttachment.");
+                throw new ArgumentException("The provided type must derive from NamedObject.");
             }
             TargetType = type;
         }
