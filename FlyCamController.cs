@@ -13,7 +13,7 @@ using System.Threading.Tasks;
 
 namespace GameEditor
 {
-    public class EditorCameraController : GameScript
+    public class FlyCamController : GameScript
     {
         public override void Init()
         {
@@ -87,7 +87,7 @@ namespace GameEditor
             {
                 GC.Collect();
             }
-            Transform.LocalRotation = Quaternion.FromAxisAngle(Vector3.UnitY, angleX) * Quaternion.FromAxisAngle(Vector3.UnitX, angleY);
+            Transform.Rotation = Quaternion.FromAxisAngle(Vector3.UnitY, angleX) * Quaternion.FromAxisAngle(Vector3.UnitX, angleY);
         }
     }
 }

@@ -4,6 +4,7 @@ using System.Collections.Generic;
 using ImGuiNET;
 using BepuPhysics.Collidables;
 using System.Numerics;
+using RasterDraw.Core.NativeScripts;
 
 namespace GameEditor.Editors
 {
@@ -64,7 +65,6 @@ namespace GameEditor.Editors
         bool shapeChanged;
         public override void OnDrawUI()
         {
-
             shapeChanged = false;
             float xSpace = ImGui.GetContentRegionAvail().X;
             ImGui.Columns(2, rigidBody.UIDText, false);

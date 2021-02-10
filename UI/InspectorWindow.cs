@@ -11,6 +11,7 @@ using System;
 using System.Collections.Generic;
 using System.Reflection;
 using System.Text;
+using System.Linq;
 
 namespace GameEditor.UI
 {
@@ -48,7 +49,7 @@ namespace GameEditor.UI
             }
         }
 
-        Editor GetEditor(GameObjectAttachment gameScript)
+        Editor GetEditor(NamedObject gameScript)
         {
             Editor editor = null!;  //HAHA LMAO   
             var type = gameScript.GetType();
@@ -69,9 +70,23 @@ namespace GameEditor.UI
             }
             return editor;
         }
-
-        void InitInspector(GameObjectAttachment gameScript)
+        List<string> gameScriptNames;
+        List<Type> gameScripts;
+        void InitInspector(NamedObject gameScript)
         {
+            var all = AppDomain.CurrentDomain.GetAssemblies();
+            gameScriptNames = new List<string>();
+            gameScripts = new List<Type>();
+            for (int i = 0; i < all.Length; i++)
+            {
+                var gs = Utilities.GetDerivedTypes(all[i], typeof(GameScript)).ToList();
+                gameScripts.AddRange(gs);
+                for (int j = 0; j < gs.Count; j++)
+                {
+                    gameScriptNames.Add(gs[j].Name);
+                }
+            }
+
             var editor = GetEditor(gameScript);
             editor.SetTargetObj(gameScript);
             editor.Init();
@@ -80,9 +95,7 @@ namespace GameEditor.UI
 
         public override void DrawUI()
         {
-
-            bool begin = ImGui.Begin(UIName, ref IsActive, ImGuiWindowFlags.NoCollapse);
-            if (begin)
+            if (ImGui.Begin(UIName, ref IsActive, ImGuiWindowFlags.NoCollapse))
             {
                 if (selectedObjInfo != null)
                 {
@@ -136,13 +149,9 @@ namespace GameEditor.UI
                         ImGui.Spacing();
                         ImGui.Separator();
                         ImGui.Spacing();
-                        if (ImGui.Button("Add Script/Component"))
-                        {
-                            var scr = new RigidBody();
-                            InitInspector(scr);
+                        DrawAddScriptUI();
 
-                            selectedObjInfo.Target.AddScript(scr);
-                        }
+
                         if (removeGO)
                         {
                             selectedObjInfo?.Target?.GameLoop.Remove(selectedObjInfo.Target);
@@ -151,6 +160,63 @@ namespace GameEditor.UI
                 }
             }
             ImGui.End();
+        }
+        string input = "";
+        bool isOpen = false;
+        bool shouldClose = false;
+        void DrawAddScriptUI()
+        {
+            ImGui.InputText("##input", ref input, 128u);
+            if (input.EndsWith(".cs", StringComparison.InvariantCultureIgnoreCase))
+            {
+                input = input.Remove(input.Length - 3);
+            }
+            string spaceLessInput = new string(input.ToCharArray().Where(c => !char.IsWhiteSpace(c)).ToArray());
+            var filteredNames = gameScriptNames.Where(x => x.Contains(input, StringComparison.InvariantCultureIgnoreCase) || x.Contains(spaceLessInput, StringComparison.InvariantCultureIgnoreCase)).ToList();
+            ImGui.SameLine();
+            //Is text box highlighted?
+            isOpen |= ImGui.IsItemActive();
+            shouldClose = ImGui.IsWindowFocused() && isOpen;
+            if (isOpen)
+            {
+                var tl = ImGui.GetItemRectMin();
+                ImGui.SetNextWindowSize(new System.Numerics.Vector2(ImGui.GetItemRectSize().X, 0));
+                if (ImGui.Begin("##popup", ref isOpen, ImGuiWindowFlags.NoCollapse | ImGuiWindowFlags.NoResize | ImGuiWindowFlags.NoMove | ImGuiWindowFlags.NoDocking | ImGuiWindowFlags.NoDecoration | ImGuiWindowFlags.NoCollapse))
+                {
+                    shouldClose &= !ImGui.IsWindowFocused();
+                    //Is suggestion field highlighted?
+                    isOpen |= ImGui.IsWindowFocused();
+                    for (int i = 0; i < filteredNames.Count; i++)
+                    {
+                        if (ImGui.Selectable(filteredNames[i]) || (ImGui.IsItemHovered() && ImGui.IsKeyPressed((int)ImGuiKey.Enter, false)))
+                        {
+                            input = filteredNames[i];
+                            isOpen = false;
+                        }
+
+                    }
+                    if (shouldClose)
+                    {
+                        isOpen = false;
+                    }
+                    ImGui.SetWindowPos(new System.Numerics.Vector2(tl.X, tl.Y - ImGui.GetWindowSize().Y));
+                }
+                ImGui.End();
+            }
+            if (ImGui.Button("Add Script"))
+            {
+                if (gameScriptNames.Contains(input))
+                {
+                    int i = gameScriptNames.IndexOf(input);
+                    if (i == -1 || selectedObjInfo?.Target == null)
+                    {
+                        return;
+                    }
+                    var scr = (GameScript)Activator.CreateInstance(gameScripts[i])!;
+                    InitInspector(scr);
+                    selectedObjInfo.Target.AddScript(scr);
+                }
+            }
         }
     }
 }

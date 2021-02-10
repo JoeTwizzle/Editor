@@ -72,6 +72,7 @@ namespace GameEditor
         {
             Console.WriteLine(GL.GetString(StringName.Renderer));
             Console.WriteLine(GL.GetString(StringName.Version));
+            
             AssetLoader.Init();
             RenderCore.Create();
             GameLoop = new GameLoop(this);
@@ -86,7 +87,8 @@ namespace GameEditor
             EditorManager.Enabled = false;
             EditorLoop.Add(editorManager);
         }
-
+        FlyCamController editorCamController;
+        FlyCamController gameCamController;
         protected override void OnLoad()
         {
             //Initialize opengl debug callback
@@ -98,41 +100,43 @@ namespace GameEditor
             Init();
 
             //Load test assets
-            var sponza = AssetLoader.LoadAssets(@"D:\Blender\Models\sponza-gltf-pbr\sponza.glb", 1f);
+            //var sponza = AssetLoader.LoadAssets(@"D:\Blender\Models\sponza-gltf-pbr\sponza.glb", 1f);
             var zelda = AssetLoader.LoadAssets(@"D:\Blender\Models\JourneyPBR\Export\untitled.glb", 0.01f);
-            var car = AssetLoader.LoadAssets(@"D:\Blender\Models\Audi R8\Models\Audi R8.fbx", 0.1f);
+            //var car = AssetLoader.LoadAssets(@"D:\Blender\Models\Audi R8\Models\Audi R8.fbx", 0.1f);
+            var mc = AssetLoader.LoadAssets(@"D:\Blender\Models\beta map split.glb", 1f, TextureFilter.Nearest);
             var Sphere = AssetLoader.LoadAssets(@"D:\Blender\Models\Sphere.fbx", 1f);
-            //var mc = AssetLoader.LoadAssets(@"D:\Blender\Models\beta map split.obj", 1f);
-
-            //mc.Root.Transform.Position -= Vector3.UnitY * 128;
-            //GameLoop.Instantiate(mc, null);
+            //var SunTemple = AssetLoader.LoadAssets(@"D:\Blender\Models\SunTemple\SunTemple.glb", 1f);
+            mc.Root.Transform.Position -= Vector3.UnitY * 128;
+            GameLoop.Instantiate(mc, null);
             GameLoop.Instantiate(Sphere, null);
-            GameLoop.Instantiate(car, null);
+            //GameLoop.Instantiate(car, null);
             GameLoop.Instantiate(zelda, null);
-            GameLoop.Instantiate(sponza, null);
-
+            //GameLoop.Instantiate(sponza, null);
+            //GameLoop.Instantiate(SunTemple, null);
             //Add RigidBodys
             var rb1 = new RigidBody();
             rb1.DetectionSettings = RigidBody.ContinuousDetectionSettings;
             rb1.Shape = new BepuPhysics.Collidables.Sphere(Sphere.Root.Transform.Scale.X);
             Sphere.Root.AddScript(rb1);
 
-            var rb2 = new RigidBody();
-            rb2.RigidBodyType = RigidBodyType.Kinematic;
-            rb2.Shape = new BepuPhysics.Collidables.Box(1000, 0.1f, 1000);
-            sponza.Root.AddScript(rb2);
+            //var rb2 = new RigidBody();
+            //rb2.RigidBodyType = RigidBodyType.Kinematic;
+            //rb2.Shape = new BepuPhysics.Collidables.Box(1000, 0.1f, 1000);
+            //sponza.Root.AddScript(rb2);
 
             //Add Game Camera
             var c = new Camera(new Viewport(ClientRectangle));
             ICamera.MainCamera = c;
             GameObject CameraObj = new GameObject("Main Camera");
             CameraObj.AddScript(c);
+            gameCamController = new FlyCamController();
+            CameraObj.AddScript(gameCamController);
             var stack = new PostProcessStack();
             stack.AddEffect(new BloomEffect());
             stack.AddEffect(new ToneMapACES());
             CameraObj.AddScript(stack);
             GameLoop.Add(CameraObj);
-
+            gameCamController.Enabled = false;
             //Spinny thingy
             zelda.Root.AddScript(new TurnTable());
             var t = Sphere.Root.GetComponent<Transform>()!;
@@ -141,7 +145,7 @@ namespace GameEditor
 
             Input.Keyboard = KeyboardState;
             Input.Mouse = MouseState;
-
+            editorCamController = EditorManager.cam.GameObject.GetScript<FlyCamController>()!;
             EditMode = true;
         }
 
@@ -167,8 +171,20 @@ namespace GameEditor
             {
                 resize = true;
                 EditMode = !EditMode;
-            }         
-
+            }
+            if (KeyboardState.IsKeyDown(Keys.F9) && !KeyboardState.WasKeyDown(Keys.F9))
+            {
+                if (editorCamController.Enabled)
+                {
+                    gameCamController.Enabled = true;
+                    editorCamController.Enabled = false;
+                }
+                else
+                {
+                    gameCamController.Enabled = false;
+                    editorCamController.Enabled = true;
+                }
+            }
             if (Play)
             {
                 GameLoop.Update((float)args.Time);
@@ -220,16 +236,16 @@ namespace GameEditor
 
             RenderTexture.BindDefault();
             GL.Clear(ClearBufferMask.ColorBufferBit | ClearBufferMask.DepthBufferBit | ClearBufferMask.StencilBufferBit);
-
+            EditorManager.cam.Enabled = EditMode;
             if (EditMode)
             {
                 EditorManager.DrawUI();
                 EditorManager.Render();
             }
             else
-            {
+            {  
                 DisplayRT.ColorTexture.Bind();
-                FullscreenQuadProgram.Bind();
+                FullscreenQuadProgram.Bind(); 
                 IRenderCore.CurrentRenderCore.FullscreenPass();
             }
             SwapBuffers();

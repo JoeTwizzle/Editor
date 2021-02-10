@@ -8,15 +8,15 @@ using System.Text;
 
 namespace GameEditor.Editors
 {
-    [CustomEditor(typeof(MeshRenderer))]
+    [CustomEditor(typeof(SubMeshRenderer))]
     class MeshRendererEditor : Editor
     {
-        MeshRenderer Target;
+        SubMeshRenderer Target;
         ObjectInfo TargetInfo;
         ObjectInfo MaterialInfo;
         public override void Init()
         {
-            Target = (MeshRenderer)TargetObj;
+            Target = (SubMeshRenderer)TargetObj;
             TargetInfo = new ObjectInfo(Target);
             MaterialInfo = new ObjectInfo(Target.Material);
         }

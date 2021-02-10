@@ -69,7 +69,7 @@ namespace GameEditor
             cam.MSAA = 1;
             cam.MultiSample = false;
             EditorCam.AddScript(cam);
-            EditorCam.AddScript(new EditorCameraController());
+            EditorCam.AddScript(new FlyCamController());
 
             GameObject.GameLoop.Add(EditorCam);
         }
