@@ -60,6 +60,7 @@ namespace GameEditor
         {
             return (T?)EditorWindows.FirstOrDefault(x => x.GetType() == typeof(T));
         }
+
         GameObject EditorCam;
         public override void Init()
         {
@@ -73,7 +74,6 @@ namespace GameEditor
 
             GameObject.GameLoop.Add(EditorCam);
         }
-
 
         public void Resize(Vector2i Size)
         {
@@ -124,7 +124,10 @@ namespace GameEditor
                     }
                     if (ImGui.MenuItem("File"))
                     {
-
+                        if (ImGui.MenuItem("Import"))
+                        {
+                            
+                        }
                     }
                     if (ImGui.MenuItem("Edit"))
                     {
