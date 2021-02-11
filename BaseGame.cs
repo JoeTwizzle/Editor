@@ -223,6 +223,7 @@ namespace GameEditor
             GameLoop.Draw((float)args.Time);
             EditorLoop.Draw((float)args.Time);
             IRenderCore.CurrentRenderCore.RenderScenes();
+            IRenderCore.CurrentRenderCore.ClearDrawCalls();
             GameLoop.PostDraw();
             var rt = ICamera.MainCamera.RenderTexture;
             if (DisplayRT.Width != rt.Width || DisplayRT.Height != rt.Height)
@@ -230,8 +231,7 @@ namespace GameEditor
                 DisplayRT.Dispose();
                 DisplayRT.Init(rt.Width, rt.Height, 1, rt.ColorTexture.TextureFormat, rt.DepthTexture.TextureFormat);
             }
-            rt.FrameBuffer.Blit(DisplayRT.FrameBuffer, new Box2i(0, 0, rt.Width, rt.Height), new Box2i(0, 0, DisplayRT.Width, DisplayRT.Height));
-            IRenderCore.CurrentRenderCore.ClearDrawCalls();
+            rt.FrameBuffer.Blit(DisplayRT.FrameBuffer, new Box2i(0, 0, rt.Width, rt.Height), new Box2i(0, 0, DisplayRT.Width, DisplayRT.Height));      
             EditorLoop.PostDraw();
 
             RenderTexture.BindDefault();
