@@ -158,13 +158,13 @@ namespace GameEditor
             Input.Mouse = MouseState;
             if (KeyboardState.IsKeyDown(Keys.V) && !KeyboardState.WasKeyDown(Keys.V))
             {
-                if (VSync == VSyncMode.Adaptive)
+                if (VSync == VSyncMode.On)
                 {
                     VSync = VSyncMode.Off;
                 }
                 else
                 {
-                    VSync = VSyncMode.Adaptive;
+                    VSync = VSyncMode.On;
                 }
             }
             if (KeyboardState.IsKeyDown(Keys.F10) && !KeyboardState.WasKeyDown(Keys.F10))
