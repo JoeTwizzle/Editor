@@ -25,7 +25,10 @@ namespace GameEditor
         {
             float speedRot = 3f;
             float speed = 3f;
-
+            if (Input.Keyboard.IsKeyDown(Keys.LeftControl))
+            {
+                speed = 8f;
+            }
             if (Input.Keyboard.IsKeyDown(Keys.Escape) && !Input.Keyboard.WasKeyDown(Keys.Escape))
             {
                 GameObject.GameLoop.NativeWindow.CursorGrabbed = !GameObject.GameLoop.NativeWindow.CursorGrabbed;

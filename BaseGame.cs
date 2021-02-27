@@ -38,7 +38,7 @@ namespace GameEditor
         DateTime p1;
         DateTime p2;
         EditorManager EditorManager;
-        public static bool Play = false;
+        public static bool Play = true;
         protected override void OnResize(ResizeEventArgs e)
         {
             p2 = p1;
@@ -63,7 +63,7 @@ namespace GameEditor
         }
         GameLoop GameLoop;
         GameLoop EditorLoop;
-        PhysicsEngine PhysicsEngine;
+        PhysicsManager PhysicsEngine;
         public static RenderTexture DisplayRT;
         GLProgram FullscreenQuadProgram;
         bool editMode;
@@ -72,14 +72,14 @@ namespace GameEditor
         {
             Console.WriteLine(GL.GetString(StringName.Renderer));
             Console.WriteLine(GL.GetString(StringName.Version));
-            
+
             AssetLoader.Init();
             RenderCore.Create();
             GameLoop = new GameLoop(this);
             EditorLoop = new GameLoop(this);
             DisplayRT = new RenderTexture();
             FullscreenQuadProgram = ShaderUtils.CreateFromResource("RasterDraw.Shaders.SimpleVert.glsl", "RasterDraw.Shaders.SimpleFrag.glsl");
-            PhysicsEngine = new PhysicsEngine();
+            PhysicsEngine = new PhysicsManager();
             EditorManager = new EditorManager(ClientSize);
             EditorManager.GameGameLoop = GameLoop;
             GameObject editorManager = new GameObject("Editor Manager");
@@ -100,24 +100,24 @@ namespace GameEditor
             Init();
 
             //Load test assets
-            //var sponza = AssetLoader.LoadAssets(@"D:\Blender\Models\sponza-gltf-pbr\sponza.glb", 1f);
-            var zelda = AssetLoader.LoadAssets(@"D:\Blender\Models\JourneyPBR\Export\untitled.glb", 0.01f);
+            //var sponza = GLTFAssetLoader.Load(@"D:\Blender\Models\sponza-gltf-pbr\sponza.gltf");
+            //var zelda = GLTFAssetLoader.Load(@"D:\Blender\Models\JourneyPBR\Export\untitled.glb", 0.01f);
             //var car = AssetLoader.LoadAssets(@"D:\Blender\Models\Audi R8\Models\Audi R8.fbx", 0.1f);
-            var mc = AssetLoader.LoadAssets(@"D:\Blender\Models\beta map split.glb", 1f, TextureFilter.Nearest);
-            var Sphere = AssetLoader.LoadAssets(@"D:\Blender\Models\Sphere.fbx", 1f);
-            //var SunTemple = AssetLoader.LoadAssets(@"D:\Blender\Models\SunTemple\SunTemple.glb", 1f);
+            //var Sphere = GLTFAssetLoader.Load(@"D:\Blender\Models\Sphere.fbx", 1f);
+            var spire = GLTFAssetLoader.Load(@"D:\Blender\Models\Spire.glb");
+            var mc = GLTFAssetLoader.Load(@"D:\Blender\Models\beta map split.glb", 1f);
             mc.Root.Transform.Position -= Vector3.UnitY * 128;
             GameLoop.Instantiate(mc, null);
-            GameLoop.Instantiate(Sphere, null);
+            //GameLoop.Instantiate(Sphere, null);
             //GameLoop.Instantiate(car, null);
-            GameLoop.Instantiate(zelda, null);
+            //GameLoop.Instantiate(zelda, null);
             //GameLoop.Instantiate(sponza, null);
-            //GameLoop.Instantiate(SunTemple, null);
+            GameLoop.Instantiate(spire, null);
             //Add RigidBodys
-            var rb1 = new RigidBody();
-            rb1.DetectionSettings = RigidBody.ContinuousDetectionSettings;
-            rb1.Shape = new BepuPhysics.Collidables.Sphere(Sphere.Root.Transform.Scale.X);
-            Sphere.Root.AddScript(rb1);
+            //var rb1 = new RigidBody();
+            //rb1.DetectionSettings = RigidBody.ContinuousDetectionSettings;
+            //rb1.Shape = new BepuPhysics.Collidables.Sphere(Sphere.Root.Transform.Scale.X);
+            //Sphere.Root.AddScript(rb1);
 
             //var rb2 = new RigidBody();
             //rb2.RigidBodyType = RigidBodyType.Kinematic;
@@ -136,19 +136,34 @@ namespace GameEditor
             stack.AddEffect(new ToneMapACES());
             CameraObj.AddScript(stack);
             GameLoop.Add(CameraObj);
+            var light = new SunLight();
+            light.Color = Color4.White.ToNumerics().ToOpenTK().Xyz;
+            light.Strength = 2;
+            CameraObj.AddScript(light);
             gameCamController.Enabled = false;
             //Spinny thingy
-            zelda.Root.AddScript(new TurnTable());
-            var t = Sphere.Root.GetComponent<Transform>()!;
-            t.Position = new Vector3(0, 4, 0);
-            t.Scale = new Vector3(0.1f);
+            //zelda.Root.AddScript(new TurnTable());
+            //var t = Sphere.Root.GetComponent<Transform>()!;
+            //t.Position = new Vector3(0, 4, 0);
+            //t.Scale = new Vector3(0.1f);
 
             Input.Keyboard = KeyboardState;
             Input.Mouse = MouseState;
             editorCamController = EditorManager.cam.GameObject.GetScript<FlyCamController>()!;
             EditMode = true;
         }
+        protected override void OnFileDrop(FileDropEventArgs e)
+        {
+            for (int i = 0; i < e.FileNames.Length; i++)
+            {
+                if (e.FileNames[i].EndsWith(".glb", StringComparison.OrdinalIgnoreCase) || e.FileNames[i].EndsWith(".gltf", StringComparison.OrdinalIgnoreCase))
+                {
+                    var model = GLTFAssetLoader.Load(e.FileNames[i]);
+                    GameLoop.Instantiate(model, null);
+                }
+            }
 
+        }
         bool resize = false;
         protected override void OnUpdateFrame(FrameEventArgs args)
         {
@@ -195,6 +210,7 @@ namespace GameEditor
 
         protected override void OnRenderFrame(FrameEventArgs args)
         {
+            //Console.WriteLine((float)(args.Time*1000));
             if (resize)
             {
                 ModeChanged();
@@ -231,7 +247,7 @@ namespace GameEditor
                 DisplayRT.Dispose();
                 DisplayRT.Init(rt.Width, rt.Height, 1, rt.ColorTexture.TextureFormat, rt.DepthTexture.TextureFormat);
             }
-            rt.FrameBuffer.Blit(DisplayRT.FrameBuffer, new Box2i(0, 0, rt.Width, rt.Height), new Box2i(0, 0, DisplayRT.Width, DisplayRT.Height));      
+            rt.FrameBuffer.Blit(DisplayRT.FrameBuffer, new Box2i(0, 0, rt.Width, rt.Height), new Box2i(0, 0, DisplayRT.Width, DisplayRT.Height));
             EditorLoop.PostDraw();
 
             RenderTexture.BindDefault();
@@ -243,9 +259,9 @@ namespace GameEditor
                 EditorManager.Render();
             }
             else
-            {  
+            {
                 DisplayRT.ColorTexture.Bind();
-                FullscreenQuadProgram.Bind(); 
+                FullscreenQuadProgram.Bind();
                 IRenderCore.CurrentRenderCore.FullscreenPass();
             }
             SwapBuffers();

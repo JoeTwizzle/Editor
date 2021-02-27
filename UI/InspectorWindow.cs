@@ -12,6 +12,7 @@ using System.Collections.Generic;
 using System.Reflection;
 using System.Text;
 using System.Linq;
+using GameEditor.Builds;
 
 namespace GameEditor.UI
 {
@@ -74,10 +75,21 @@ namespace GameEditor.UI
         List<Type> gameScripts;
         void InitInspector(GameObjectAttachment gameScript)
         {
-            var all = AppDomain.CurrentDomain.GetAssemblies();
+            var all = AppDomain.CurrentDomain.GetAssemblies().ToList();
             gameScriptNames = new List<string>();
             gameScripts = new List<Type>();
-            for (int i = 0; i < all.Length; i++)
+
+            if (Compiler.GameLoader != null)
+            {
+                var assembly = Compiler.GameLoader.LoadDefaultAssembly();              
+                var gameTypes = Utilities.GetDerivedTypes(assembly, typeof(GameObjectAttachment));
+                gameScripts.AddRange(gameTypes);
+                foreach (var type in gameTypes)
+                {
+                    gameScriptNames.Add(type.Name);
+                }
+            }
+            for (int i = 0; i < all.Count; i++)
             {
                 var gs = Utilities.GetDerivedTypes(all[i], typeof(GameObjectAttachment)).ToList();
                 gameScripts.AddRange(gs);
@@ -86,7 +98,6 @@ namespace GameEditor.UI
                     gameScriptNames.Add(gs[j].Name);
                 }
             }
-
             var editor = GetEditor(gameScript);
             editor.SetTargetObj(gameScript);
             editor.Init();
@@ -114,13 +125,21 @@ namespace GameEditor.UI
                             ImGui.Spacing();
                             string inspectorID = $"{ActiveEditors[i].TargetObjType.Name}##{ActiveEditors[i].TargetObj.UIDText}";
                             float xSpace = ImGui.GetContentRegionAvail().X;
-                            ImGui.Columns(2, inspectorID, false);
-                            ImGui.SetColumnWidth(0, xSpace * 0.95f);
+                            bool isTransform = ActiveEditors[i].TargetObj is Transform;
+                            if (!isTransform)
+                            {
+                                ImGui.Columns(2, inspectorID, false);
+                                ImGui.SetColumnWidth(0, xSpace * 0.95f);
+                            }
                             bool open = ImGui.CollapsingHeader(inspectorID, ImGuiTreeNodeFlags.DefaultOpen);
-                            ImGui.SameLine();
-                            ImGui.NextColumn();
-                            ImGui.SetNextItemWidth(ImGui.GetColumnWidth());
-                            remove = ImGui.Button($"x##{ActiveEditors[i].TargetObj.UIDText}");
+                            if (!isTransform)
+                            {
+                                ImGui.SameLine();
+                                ImGui.NextColumn();
+                                ImGui.SetNextItemWidth(ImGui.GetColumnWidth());
+                                remove = ImGui.Button($"x##{ActiveEditors[i].TargetObj.UIDText}");
+                            }
+
                             ImGui.Columns(1);
                             if (open)
                             {
@@ -135,7 +154,7 @@ namespace GameEditor.UI
                         }
                         if (remove)
                         {
-                            if (ActiveEditors[r].TargetObj is ComponentData)
+                            if (ActiveEditors[r].TargetObj is ComponentData && ActiveEditors[r].TargetObj is not Transform)
                             {
                                 selectedObjInfo.Target.RemoveComponent((ComponentData)ActiveEditors[r].TargetObj);
                             }
@@ -212,15 +231,22 @@ namespace GameEditor.UI
                     {
                         return;
                     }
-                    var scr = (GameObjectAttachment)Activator.CreateInstance(gameScripts[i])!;
-                    InitInspector(scr);
-                    if (scr is GameScript a)
+                    try
                     {
-                        selectedObjInfo.Target.AddScript(a);
+                        var scr = (GameObjectAttachment)Activator.CreateInstance(gameScripts[i])!;
+                        InitInspector(scr);
+                        if (scr is GameScript a)
+                        {
+                            selectedObjInfo.Target.AddScript(a);
+                        }
+                        if (scr is ComponentData b)
+                        {
+                            selectedObjInfo.Target.AddComponent(b);
+                        }
                     }
-                    if (scr is ComponentData b)
+                    catch
                     {
-                        selectedObjInfo.Target.AddComponent(b);
+
                     }
                 }
             }

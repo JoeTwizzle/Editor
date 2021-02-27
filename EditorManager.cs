@@ -16,6 +16,7 @@ using System.Reflection;
 using System.Text;
 using RasterDraw.Rendering;
 using RasterDraw.Rendering.PostFX;
+using RasterDraw.Assets;
 
 namespace GameEditor
 {
@@ -60,7 +61,6 @@ namespace GameEditor
         {
             return (T?)EditorWindows.FirstOrDefault(x => x.GetType() == typeof(T));
         }
-
         GameObject EditorCam;
         public override void Init()
         {
@@ -122,12 +122,23 @@ namespace GameEditor
                     {
                         BaseGame.Play = !BaseGame.Play;
                     }
-                    if (ImGui.MenuItem("File"))
+                    if (ImGui.BeginMenu("File"))
                     {
                         if (ImGui.MenuItem("Import"))
                         {
-                            
+                            //if (Environment.OSVersion.Platform == PlatformID.Win32NT)
+                            //{
+                            //    for (int i = 0; i < files.Length; i++)
+                            //    {
+                            //        if (files[i].EndsWith(".glb", StringComparison.OrdinalIgnoreCase) || files[i].EndsWith(".gltf", StringComparison.OrdinalIgnoreCase))
+                            //        {
+                            //            var model = GLTFAssetLoader.Load(files[i]);
+                            //            GameGameLoop.Instantiate(model, null);
+                            //        }
+                            //    }
+                            //}
                         }
+                        ImGui.EndMenu();
                     }
                     if (ImGui.MenuItem("Edit"))
                     {

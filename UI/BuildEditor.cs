@@ -11,8 +11,6 @@ namespace GameEditor.UI
 {
     public class BuildEditor : EditorWindow
     {
-        Compiler compiler = new Compiler();
-
         public BuildEditor()
         {
             UIName = "Build";
@@ -20,10 +18,22 @@ namespace GameEditor.UI
 
         public override void DrawUI()
         {
-            if (ImGui.Button("Build"))
+            if (ImGui.Begin(UIName, ref IsActive, ImGuiWindowFlags.NoCollapse))
             {
-                //compiler.Compile();
+                if (ImGui.Button("Create New"))
+                {
+                    Compiler.CreateNewProject();
+                }
+                if (ImGui.Button("Build"))
+                {
+                    Compiler.BuildProject();
+                }
+                if (ImGui.Button("Load"))
+                {
+                    Compiler.LoadProject();
+                }
             }
+            ImGui.End();
         }
     }
 }
